@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using NightShift.Generation;
@@ -16,8 +17,8 @@ namespace NightShift.Editor
 
         // Normalized scale constants
         private const float CeilingHeight = 3.5f;
-        /// <summary>Shrink floor X/Z by ~2% to prevent coplanar z-fighting at section seams.</summary>
-        private const float FloorInsetScale = 0.98f;
+        /// <summary>Inset FloorMain from connector edges so adjacent FloorMain pieces never overlap. FloorLip strips fill this region.</summary>
+        private const float FloorLipInset = 0.2f;
         private const float HallWidth = 4.5f;
         private const float HallLength = 10f;
         private const float StoreSize = 7f;
@@ -176,19 +177,72 @@ namespace NightShift.Editor
             return new GameObject(name);
         }
 
+        /// <summary>Creates Floor parent with FloorMain (inset) + FloorLip_i strips. Floor parent has structural collider. isZEdge: true = lip thin in Z (runs along X), false = thin in X (runs along Z).</summary>
+        static void CreateFloorWithLips(Transform root, Vector3 floorCenter, Vector3 floorSize,
+            List<(Vector3 pos, bool isZEdge)> connectorEdges, Material material, bool ensureCollider = true)
+        {
+            var floorParent = new GameObject("Floor");
+            floorParent.transform.SetParent(root);
+            floorParent.transform.localPosition = floorCenter;
+            floorParent.transform.localRotation = Quaternion.identity;
+            floorParent.transform.localScale = Vector3.one;
+
+            var inset = FloorLipInset;
+            var mainSize = new Vector3(
+                Mathf.Max(0.1f, floorSize.x - 2f * inset),
+                floorSize.y,
+                Mathf.Max(0.1f, floorSize.z - 2f * inset));
+
+            var floorMain = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            floorMain.name = "FloorMain";
+            floorMain.transform.SetParent(floorParent.transform);
+            floorMain.transform.localPosition = Vector3.zero;
+            floorMain.transform.localScale = mainSize;
+            ApplyMaterial(floorMain, material);
+            Object.DestroyImmediate(floorMain.GetComponent<Collider>());
+
+            for (int i = 0; i < connectorEdges.Count; i++)
+            {
+                var (pos, isZEdge) = connectorEdges[i];
+                var lip = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                lip.name = $"FloorLip_{i}";
+                lip.transform.SetParent(floorParent.transform);
+                lip.transform.localPosition = pos;
+                lip.transform.localRotation = Quaternion.identity;
+                lip.transform.localScale = isZEdge
+                    ? new Vector3(floorSize.x - 2f * inset, floorSize.y, inset)
+                    : new Vector3(inset, floorSize.y, floorSize.z - 2f * inset);
+                ApplyMaterial(lip, material);
+                Object.DestroyImmediate(lip.GetComponent<Collider>());
+            }
+
+            if (ensureCollider)
+            {
+                floorParent.layer = 0;
+                var col = floorParent.AddComponent<BoxCollider>();
+                col.isTrigger = false;
+                col.center = Vector3.zero;
+                col.size = floorSize;
+            }
+        }
+
         static void CreateStartHub()
         {
             var root = new GameObject("MallSection");
             root.AddComponent<MallSection>();
 
             float size = 8f;
-            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            floor.name = "Floor";
-            floor.transform.SetParent(root.transform);
-            floor.transform.localPosition = Vector3.zero;
-            floor.transform.localScale = new Vector3(size * FloorInsetScale, 0.2f, size * FloorInsetScale);
-            ApplyMaterial(floor, _floorLight);
-            EnsureStructuralCollider(floor);
+            var floorSize = new Vector3(size, 0.2f, size);
+            float half = size * 0.5f;
+            float lipCenter = half - FloorLipInset * 0.5f;
+            var connectorEdges = new List<(Vector3, bool)>
+            {
+                (new Vector3(0f, 0f, lipCenter), true),
+                (new Vector3(lipCenter, 0f, 0f), false),
+                (new Vector3(0f, 0f, -lipCenter), true),
+                (new Vector3(-lipCenter, 0f, 0f), false)
+            };
+            CreateFloorWithLips(root.transform, Vector3.zero, floorSize, connectorEdges, _floorLight);
 
             var ceiling = GameObject.CreatePrimitive(PrimitiveType.Cube);
             ceiling.name = "Ceiling";
@@ -239,13 +293,14 @@ namespace NightShift.Editor
             float halfW = HallWidth * 0.5f;
             float halfL = HallLength * 0.5f;
 
-            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            floor.name = "Floor";
-            floor.transform.SetParent(root.transform);
-            floor.transform.localPosition = Vector3.zero;
-            floor.transform.localScale = new Vector3(HallWidth * FloorInsetScale, 0.2f, HallLength * FloorInsetScale);
-            ApplyMaterial(floor, _floorLight);
-            EnsureStructuralCollider(floor);
+            var floorSize = new Vector3(HallWidth, 0.2f, HallLength);
+            float lipCenterZ = halfL - FloorLipInset * 0.5f;
+            var connectorEdges = new List<(Vector3, bool)>
+            {
+                (new Vector3(0f, 0f, -lipCenterZ), true),
+                (new Vector3(0f, 0f, lipCenterZ), true)
+            };
+            CreateFloorWithLips(root.transform, Vector3.zero, floorSize, connectorEdges, _floorLight);
 
             float wallX = halfW + WallThickness * 0.5f;
             var wallL = CreateWallCube(HallLength + WallThickness * 2f, CeilingHeight, WallThickness);
@@ -316,13 +371,14 @@ namespace NightShift.Editor
             float cornerSize = 4.5f;
             float half = cornerSize * 0.5f;
 
-            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            floor.name = "Floor";
-            floor.transform.SetParent(root.transform);
-            floor.transform.localPosition = new Vector3(half, 0f, half);
-            floor.transform.localScale = new Vector3(cornerSize * FloorInsetScale, 0.2f, cornerSize * FloorInsetScale);
-            ApplyMaterial(floor, _floorLight);
-            EnsureStructuralCollider(floor);
+            var floorSize = new Vector3(cornerSize, 0.2f, cornerSize);
+            float lipCenter = half - FloorLipInset * 0.5f;
+            var connectorEdges = new List<(Vector3, bool)>
+            {
+                (new Vector3(0f, 0f, -lipCenter), true),
+                (new Vector3(lipCenter, 0f, 0f), false)
+            };
+            CreateFloorWithLips(root.transform, new Vector3(half, 0f, half), floorSize, connectorEdges, _floorLight);
 
             var wallBack = CreateWallCube(cornerSize + WallThickness * 2f, CeilingHeight, WallThickness);
             wallBack.name = "WallBack";
@@ -387,13 +443,13 @@ namespace NightShift.Editor
             float half = StoreSize * 0.5f;
             float wallOuterX = half + WallThickness * 0.5f;
 
-            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            floor.name = "Floor";
-            floor.transform.SetParent(root.transform);
-            floor.transform.localPosition = Vector3.zero;
-            floor.transform.localScale = new Vector3(StoreSize * FloorInsetScale, 0.2f, StoreSize * FloorInsetScale);
-            ApplyMaterial(floor, _floorDark);
-            EnsureStructuralCollider(floor);
+            var floorSize = new Vector3(StoreSize, 0.2f, StoreSize);
+            float lipCenterZ = half - FloorLipInset * 0.5f;
+            var connectorEdges = new List<(Vector3, bool)>
+            {
+                (new Vector3(0f, 0f, -lipCenterZ), true)
+            };
+            CreateFloorWithLips(root.transform, Vector3.zero, floorSize, connectorEdges, _floorDark);
 
             var backWall = CreateWallCube(StoreSize + WallThickness * 2f, CeilingHeight, WallThickness);
             backWall.name = "WallBack";

@@ -267,7 +267,6 @@ namespace NightShift.Generation
                     newOpenConnectors.Add((newSection, cp));
                 if (WouldOverlap(newSection, out rejectReason)) { Destroy(inst); newSection = null; rejectReason = "overlap"; return false; }
                 ForceSectionRootY(newSection);
-                SpawnSeamStrip(parentConn);
                 rejectReason = null;
                 return true;
             }
@@ -280,7 +279,6 @@ namespace NightShift.Generation
                 newSection = inst.GetComponent<MallSection>() ?? inst.AddComponent<MallSection>();
                 if (WouldOverlap(newSection, out rejectReason)) { Destroy(inst); newSection = null; rejectReason = "overlap"; return false; }
                 ForceSectionRootY(newSection);
-                SpawnSeamStrip(parentConn);
                 rejectReason = null;
                 return true;
             }
@@ -331,7 +329,7 @@ namespace NightShift.Generation
             }
 
             ForceSectionRootY(newSection);
-            SpawnSeamStrip(parentConn);
+            DisableFloorLipAtConnector(newSection, usedConnIdx);
             var newConns = newSection.ConnectorPoints;
             for (int i = 0; i < newConns.Count; i++)
             {
@@ -356,37 +354,14 @@ namespace NightShift.Generation
             }
         }
 
-        private const float SeamStripHeight = 0.01f;
-        private const float SeamStripLength = 5f;
-        private const float SeamStripThickness = 0.12f;
-        private const float FloorTopOffset = 0.1f;
-
-        /// <summary>Thin strip at connector line to hide seam and prevent edge z-fighting.</summary>
-        private void SpawnSeamStrip(Transform connector)
+        /// <summary>Disable the new section's FloorLip at the connector used for attachment to prevent z-fighting. Keep the existing section's lip enabled.</summary>
+        private void DisableFloorLipAtConnector(MallSection section, int connectorIndex)
         {
-            if (connector == null || _generationRoot == null) return;
-
-            float baseY = _generationRoot.position.y;
-            Vector3 pos = connector.position;
-            pos.y = baseY + FloorTopOffset + SeamStripHeight * 0.5f;
-
-            Vector3 fwd = connector.forward;
-            fwd.y = 0f;
-            if (fwd.sqrMagnitude < 0.01f) fwd = Vector3.forward;
-            Vector3 seamDir = Vector3.Cross(Vector3.up, fwd).normalized;
-
-            var strip = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            strip.name = "SeamStrip";
-            strip.transform.SetParent(_generationRoot);
-            strip.transform.position = pos;
-            strip.transform.rotation = Quaternion.LookRotation(seamDir, Vector3.up);
-            strip.transform.localScale = new Vector3(SeamStripThickness, SeamStripHeight, SeamStripLength);
-
-            Object.Destroy(strip.GetComponent<Collider>());
-            var mat = Resources.Load<Material>("MallMaterials/Floor_Light");
-            var r = strip.GetComponent<Renderer>();
-            if (mat != null && r != null)
-                r.sharedMaterial = mat;
+            if (section == null) return;
+            section.CollectMarkersIfNeeded();
+            var lips = section.FloorLips;
+            if (connectorIndex >= 0 && connectorIndex < lips.Count && lips[connectorIndex] != null)
+                lips[connectorIndex].gameObject.SetActive(false);
         }
 
         /// <summary>Snap Y to base height. No floating offsets to ensure floor consistency.</summary>
@@ -527,16 +502,6 @@ namespace NightShift.Generation
         {
             var dresser = FindFirstObjectByType<MallDresser>();
             dresser?.ClearDressing();
-
-            if (_generationRoot != null)
-            {
-                for (int i = _generationRoot.childCount - 1; i >= 0; i--)
-                {
-                    var c = _generationRoot.GetChild(i);
-                    if (c.name == "SeamStrip")
-                        Destroy(c.gameObject);
-                }
-            }
 
             foreach (var s in _spawnedSections)
             {

@@ -13,6 +13,10 @@ namespace NightShift.Generation
         [Header("Identity")]
         [SerializeField] private bool _isStart;
 
+        [Header("Floor (auto-collected if empty)")]
+        [SerializeField] private Transform _floorMain;
+        [SerializeField] private List<Transform> _floorLips = new List<Transform>();
+
         [Header("Markers (auto-collected if empty)")]
         [SerializeField] private Transform[] _connectorPoints;
         [SerializeField] private Transform[] _anomalySpawnPoints;
@@ -24,6 +28,8 @@ namespace NightShift.Generation
         [SerializeField] private Transform _playerSpawn;
 
         public bool IsStart => _isStart;
+        public Transform FloorMain => _floorMain;
+        public IReadOnlyList<Transform> FloorLips => _floorLips ?? new List<Transform>();
         public IReadOnlyList<Transform> ConnectorPoints => _connectorPoints ?? System.Array.Empty<Transform>();
         public IReadOnlyList<Transform> AnomalySpawnPoints => _anomalySpawnPoints ?? System.Array.Empty<Transform>();
         public IReadOnlyList<Transform> CctvPoints => _cctvPoints ?? System.Array.Empty<Transform>();
@@ -70,9 +76,37 @@ namespace NightShift.Generation
             }
         }
 
+        /// <summary>Auto-collect FloorMain and FloorLip_* by name. FloorLips sorted by index to match connectorPoints.</summary>
+        private void CollectFloorIfNeeded()
+        {
+            if (_floorMain == null || _floorLips == null || _floorLips.Count == 0)
+            {
+                Transform foundMain = null;
+                var lipList = new List<(int index, Transform t)>();
+                foreach (Transform child in GetComponentsInChildren<Transform>(true))
+                {
+                    if (child == transform) continue;
+                    if (child.name == "FloorMain")
+                        foundMain = child;
+                    else if (child.name.StartsWith("FloorLip_"))
+                    {
+                        if (int.TryParse(child.name.Substring(8), out int idx))
+                            lipList.Add((idx, child));
+                    }
+                }
+                if (foundMain != null) _floorMain = foundMain;
+                if (lipList.Count > 0)
+                {
+                    lipList.Sort((a, b) => a.index.CompareTo(b.index));
+                    _floorLips = lipList.ConvertAll(x => x.t);
+                }
+            }
+        }
+
         /// <summary>Auto-collect markers from children by name/component.</summary>
         public void CollectMarkersIfNeeded()
         {
+            CollectFloorIfNeeded();
             bool needsCollect = (_connectorPoints == null || _connectorPoints.Length == 0) ||
                 (_anomalySpawnPoints == null || _anomalySpawnPoints.Length == 0 && HasChildNamed("AnomalySpawnPoint")) ||
                 (_cctvPoints == null || _cctvPoints.Length == 0 && HasChildWithCctvPoint()) ||

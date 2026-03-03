@@ -125,8 +125,8 @@ namespace NightShift.Debug
             if (kb.f3Key.wasPressedThisFrame && _instability != null)
                 _instability.Add(-5f);
 
-            // F4: restart run (reload scene)
-            if (kb.f4Key.wasPressedThisFrame)
+            // F4: restart run (reload scene) — only when Shift not held (Shift+F4 = skip to 6AM)
+            if (kb.f4Key.wasPressedThisFrame && !kb.shiftKey.isPressed)
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
 
             // F5: spawn anomaly (legacy)
@@ -156,6 +156,21 @@ namespace NightShift.Debug
             // F11: revive player
             if (kb.f11Key.wasPressedThisFrame && Player.PlayerVitals.Instance != null)
                 Player.PlayerVitals.Instance.DebugRevive();
+
+            // Shift+F4: skip to 6AM (end run as Survived)
+            if (kb.shiftKey.isPressed && kb.f4Key.wasPressedThisFrame)
+                Core.GameEvents.RaiseRunEnded(Core.RunEndReason.Survived);
+
+            // Shift+F2: add 100 credits
+            if (kb.shiftKey.isPressed && kb.f2Key.wasPressedThisFrame && Systems.UpgradeManager.Instance != null)
+                Systems.UpgradeManager.Instance.AddCredits(100);
+
+            // Shift+F3: reset progression
+            if (kb.shiftKey.isPressed && kb.f3Key.wasPressedThisFrame)
+            {
+                Core.ProgressionData.ClearAll();
+                Systems.UpgradeManager.Instance?.RefreshFromDisk();
+            }
 
             // F12: toggle mannequin spawn
             if (kb.f12Key.wasPressedThisFrame)
@@ -206,6 +221,9 @@ namespace NightShift.Debug
             sb.AppendLine($"Reports: {reports} (✓{correct} ✗{incorrect})");
             sb.AppendLine($"False alert chance: {falseChance * 100:F0}%");
             sb.AppendLine($"Alerts: {totalAlerts} total, {falseAlerts} false");
+
+            int credits = Systems.UpgradeManager.Instance != null ? Systems.UpgradeManager.Instance.Credits : 0;
+            sb.AppendLine($"Credits: {credits} | Shift+F2: +100 | Shift+F3: reset | Shift+F4: skip to 6AM");
 
             var tablet = FindFirstObjectByType<NightShift.UI.SecurityTabletUI>();
             bool tabletOpen = tablet != null && tablet.IsTabletOpen;

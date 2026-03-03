@@ -72,7 +72,7 @@ namespace NightShift.UI
             var kb = Keyboard.current;
             if (kb == null) return;
 
-            if (kb.tabKey.wasPressedThisFrame)
+            if (kb.tabKey.wasPressedThisFrame && !EndScreenController.IsEndScreenVisible)
             {
                 _isOpen = !_isOpen;
                 SetPanelVisible(_isOpen);
@@ -344,8 +344,18 @@ namespace NightShift.UI
             {
                 if (Time.time >= _nextStaticTime && !_staticActive)
                 {
-                    _nextStaticTime = Time.time + Random.Range(8f, 18f);
-                    StartCoroutine(StaticOverlayCoroutine());
+                    float reduction = NightShift.Systems.UpgradeManager.Instance != null
+                        ? NightShift.Systems.UpgradeManager.Instance.GetTabletDistortionReduction()
+                        : 0f;
+                    if (Random.value >= reduction)
+                    {
+                        _nextStaticTime = Time.time + Random.Range(8f, 18f);
+                        StartCoroutine(StaticOverlayCoroutine());
+                    }
+                    else
+                    {
+                        _nextStaticTime = Time.time + Random.Range(2f, 6f);
+                    }
                 }
             }
 

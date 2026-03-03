@@ -81,6 +81,12 @@ namespace NightShift.Systems
         /// <summary>Debug: force transition to a state.</summary>
         public void DebugTransitionTo(GameState state) => TransitionTo(state);
 
+        /// <summary>Restart run without reloading scene. Resets all run state and returns to InRun.</summary>
+        public void RestartRun()
+        {
+            TransitionTo(GameState.InRun);
+        }
+
         private void OnDestroy()
         {
             if (Instance == this)

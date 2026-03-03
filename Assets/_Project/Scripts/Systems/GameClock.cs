@@ -20,6 +20,7 @@ namespace NightShift.Systems
 
         private float _currentHour;
         private bool _running;
+        private float _effectiveDurationSeconds;
 
         /// <summary>Normalized time 0..1 (0 = 12AM, 1 = 6AM).</summary>
         public float CurrentTimeNormalized => Mathf.Clamp01((_currentHour - StartHour) / HoursInRun);
@@ -35,6 +36,8 @@ namespace NightShift.Systems
             if (state == GameState.InRun)
             {
                 _currentHour = StartHour;
+                float mult = UpgradeManager.Instance != null ? UpgradeManager.Instance.GetClockDurationMultiplier() : 1f;
+                _effectiveDurationSeconds = _realTimeDurationSeconds * mult;
                 _running = true;
             }
             else
@@ -47,10 +50,12 @@ namespace NightShift.Systems
 
         private void Update()
         {
-            if (!_running || _realTimeDurationSeconds <= 0f)
+            if (!_running)
                 return;
+            float duration = _effectiveDurationSeconds > 0 ? _effectiveDurationSeconds : _realTimeDurationSeconds;
+            if (duration <= 0f) return;
 
-            float progressPerSecond = HoursInRun / _realTimeDurationSeconds;
+            float progressPerSecond = HoursInRun / duration;
             _currentHour += progressPerSecond * Time.deltaTime;
 
             GameEvents.RaiseGameTimeChanged(_currentHour);
@@ -61,6 +66,7 @@ namespace NightShift.Systems
                 _currentHour = EndHour;
                 OnSixAMReached?.Invoke();
                 GameEvents.RaiseSixAMReached();
+                GameEvents.RaiseRunEnded(RunEndReason.Survived);
             }
         }
 

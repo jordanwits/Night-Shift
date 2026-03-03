@@ -7,7 +7,7 @@ namespace NightShift.Player
     /// Player health and downed state. Supports TakeDamage, Down, Revive.
     /// Downed too long = EndRun (singleplayer).
     /// </summary>
-    public class PlayerVitals : MonoBehaviour
+    public class PlayerVitals : MonoBehaviour, IGameStateListener
     {
         public static PlayerVitals Instance { get; private set; }
 
@@ -34,6 +34,7 @@ namespace NightShift.Player
             }
             Instance = this;
             PlayerStateProxy.IsDowned = _isDowned;
+            Systems.GameStateManager.Instance?.RegisterListener(this);
         }
 
         private void OnEnable()
@@ -48,7 +49,11 @@ namespace NightShift.Player
 
         private void OnDamageRequested(float amount)
         {
-            TakeDamage(amount);
+            float reduction = Systems.UpgradeManager.Instance != null
+                ? Systems.UpgradeManager.Instance.GetDamageReductionPercent()
+                : 0f;
+            float mitigated = amount * Mathf.Max(0f, 1f - reduction);
+            TakeDamage(mitigated);
         }
 
         private void OnDestroy()
@@ -118,5 +123,35 @@ namespace NightShift.Player
 
         /// <summary>Debug: revive.</summary>
         public void DebugRevive() => Revive();
+
+        public void OnGameStateEntered(GameState state)
+        {
+            if (state == GameState.InRun)
+                ResetForNewRun();
+        }
+
+        public void OnGameStateExited(GameState state) { }
+
+        private void ResetForNewRun()
+        {
+            _health = _maxHealth;
+            _isDowned = false;
+            _downedElapsed = 0f;
+            PlayerStateProxy.IsDowned = false;
+
+            var cc = GetComponent<CharacterController>();
+            if (cc != null)
+            {
+                cc.enabled = false;
+                transform.position = new Vector3(0f, 1f, 0f);
+                transform.rotation = Quaternion.identity;
+                cc.enabled = true;
+            }
+            else
+            {
+                transform.position = new Vector3(0f, 1f, 0f);
+                transform.rotation = Quaternion.identity;
+            }
+        }
     }
 }

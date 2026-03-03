@@ -36,6 +36,10 @@ namespace NightShift.Core
             EnsureComponent<SecurityTabletUI>();
             EnsureComponent<DebugOverlay>();
             EnsureComponent<ReportUIController>();
+            EnsureComponent<UpgradeManager>();
+            EnsureComponent<RunStatsTracker>();
+            EnsureComponent<RunEndHandler>();
+            EnsureComponent<EndScreenController>();
             EnsurePlayer();
             EnsureComponent<GameStateManager>();
         }

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using NightShift.Core;
 using NightShift.UI;
 
 namespace NightShift.Player
@@ -8,7 +9,7 @@ namespace NightShift.Player
     /// Simple first-person movement. Yaw on body, pitch on camera. Uses Input System package.
     /// Blocks look/move when report UI is open. Movement disabled/slowed when downed.
     /// </summary>
-    public class PlayerController : MonoBehaviour
+    public class PlayerController : MonoBehaviour, IGameStateListener
     {
         [Header("Movement")]
         [SerializeField] private float _moveSpeed = 5f;
@@ -30,6 +31,7 @@ namespace NightShift.Player
             var cam = GetComponentInChildren<Camera>();
             _cameraTransform = cam != null ? cam.transform : null;
             _vitals = GetComponent<PlayerVitals>();
+            Systems.GameStateManager.Instance?.RegisterListener(this);
         }
 
         private void Update()
@@ -37,6 +39,8 @@ namespace NightShift.Player
             if (ReportUIController.IsOpen)
                 return;
             if (SecurityTabletUI.Instance != null && SecurityTabletUI.Instance.IsTabletOpen)
+                return;
+            if (EndScreenController.IsEndScreenVisible)
                 return;
 
             bool downed = _vitals != null && _vitals.IsDowned;
@@ -71,5 +75,16 @@ namespace NightShift.Player
             move.y = -9.81f * Time.deltaTime;
             _controller.Move(move);
         }
+
+        public void OnGameStateEntered(GameState state)
+        {
+            if (state == GameState.InRun)
+            {
+                _rotationY = 0f;
+                _rotationX = 0f;
+            }
+        }
+
+        public void OnGameStateExited(GameState state) { }
     }
 }

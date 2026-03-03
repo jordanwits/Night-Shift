@@ -40,10 +40,37 @@ namespace NightShift.Systems
             Instance = this;
         }
 
+        private float _lastDecayGameMinute;
+
+        private void OnEnable()
+        {
+            GameEvents.OnGameTimeChanged += OnGameTimeChanged;
+        }
+
+        private void OnDisable()
+        {
+            GameEvents.OnGameTimeChanged -= OnGameTimeChanged;
+        }
+
         private void OnDestroy()
         {
             if (Instance == this)
                 Instance = null;
+        }
+
+        private void OnGameTimeChanged(float currentHour)
+        {
+            if (!_runActive) return;
+            float decay = UpgradeManager.Instance != null ? UpgradeManager.Instance.GetInstabilityDecayPerMinute() : 0f;
+            if (decay <= 0f) return;
+
+            float gameMinutes = currentHour * 60f;
+            int prevMinute = Mathf.FloorToInt(_lastDecayGameMinute);
+            int currMinute = Mathf.FloorToInt(gameMinutes);
+            _lastDecayGameMinute = gameMinutes;
+
+            for (int m = prevMinute; m < currMinute; m++)
+                Add(-decay);
         }
 
         public void OnGameStateEntered(GameState state)
@@ -51,9 +78,13 @@ namespace NightShift.Systems
             if (state == GameState.InRun)
             {
                 _runActive = true;
+                _instability = 0f;
+                _lastDecayGameMinute = 0f;
                 _threshold30Fired = false;
                 _threshold60Fired = false;
                 _threshold80Fired = false;
+                OnInstabilityChanged?.Invoke(_instability);
+                GameEvents.RaiseInstabilityChanged(_instability);
             }
             else if (state == GameState.Bootstrap)
             {
@@ -81,6 +112,9 @@ namespace NightShift.Systems
             OnInstabilityChanged?.Invoke(_instability);
             GameEvents.RaiseInstabilityChanged(_instability);
             CheckThresholds();
+
+            if (_instability >= Max)
+                GameEvents.RaiseRunEnded(RunEndReason.InstabilityMax);
         }
 
         /// <summary>Set instability directly. Clamped 0..100.</summary>
@@ -95,6 +129,9 @@ namespace NightShift.Systems
             OnInstabilityChanged?.Invoke(_instability);
             GameEvents.RaiseInstabilityChanged(_instability);
             CheckThresholds();
+
+            if (_instability >= Max)
+                GameEvents.RaiseRunEnded(RunEndReason.InstabilityMax);
         }
 
         /// <summary>Alias for Add. Kept for compatibility.</summary>

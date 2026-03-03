@@ -83,6 +83,11 @@ namespace NightShift.Systems
         {
             if (state == GameState.InRun)
             {
+                foreach (var instance in _activeAnomalies)
+                {
+                    if (instance != null && instance.gameObject != null)
+                        Destroy(instance.gameObject);
+                }
                 _running = true;
                 _runStartTime = Time.time;
                 _reports.Clear();

@@ -76,29 +76,33 @@ namespace NightShift.Generation
             }
         }
 
-        /// <summary>Auto-collect FloorMain and FloorLip_* by name. FloorLips sorted by index to match connectorPoints.</summary>
+        /// <summary>Auto-collect FloorMain (or first FloorCore) and FloorLip_* by name. FloorLips kept for backward compat but unused with FloorCore.</summary>
         private void CollectFloorIfNeeded()
         {
-            if (_floorMain == null || _floorLips == null || _floorLips.Count == 0)
+            if (_floorMain == null)
             {
-                Transform foundMain = null;
-                var lipList = new List<(int index, Transform t)>();
-                foreach (Transform child in GetComponentsInChildren<Transform>(true))
+                var floor = transform.Find("Floor");
+                if (floor != null)
                 {
-                    if (child == transform) continue;
-                    if (child.name == "FloorMain")
-                        foundMain = child;
-                    else if (child.name.StartsWith("FloorLip_"))
+                    foreach (Transform child in floor)
                     {
-                        if (int.TryParse(child.name.Substring(8), out int idx))
-                            lipList.Add((idx, child));
+                        if (child != null && child.name.StartsWith("FloorCore"))
+                        {
+                            _floorMain = child;
+                            break;
+                        }
                     }
                 }
-                if (foundMain != null) _floorMain = foundMain;
-                if (lipList.Count > 0)
+                if (_floorMain == null)
                 {
-                    lipList.Sort((a, b) => a.index.CompareTo(b.index));
-                    _floorLips = lipList.ConvertAll(x => x.t);
+                    foreach (Transform child in GetComponentsInChildren<Transform>(true))
+                    {
+                        if (child != transform && child.name == "FloorMain")
+                        {
+                            _floorMain = child;
+                            break;
+                        }
+                    }
                 }
             }
         }

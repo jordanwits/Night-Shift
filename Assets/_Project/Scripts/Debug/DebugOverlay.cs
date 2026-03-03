@@ -182,9 +182,12 @@ namespace NightShift.Debug
             if (kb.shiftKey.isPressed && kb.f7Key.wasPressedThisFrame && MallDresser.Instance != null)
                 MallDresser.Instance.ToggleDressing();
 
-            // Shift+F8: force re-dress current layout (same seed)
-            if (kb.shiftKey.isPressed && kb.f8Key.wasPressedThisFrame && MallDresser.Instance != null)
-                MallDresser.Instance.ForceRedress();
+            // Shift+F8: toggle floor overlap validation (runs after next generation)
+            if (kb.shiftKey.isPressed && kb.f8Key.wasPressedThisFrame)
+            {
+                FloorOverlapValidator.ValidationEnabled = !FloorOverlapValidator.ValidationEnabled;
+                UnityEngine.Debug.Log($"[FloorOverlapValidator] Validation {(FloorOverlapValidator.ValidationEnabled ? "ON" : "OFF")}");
+            }
 
             // Shift+F9: reset progression
             if (kb.shiftKey.isPressed && kb.f9Key.wasPressedThisFrame)
@@ -252,7 +255,7 @@ namespace NightShift.Debug
             int propsSpawned = MallDresser.Instance != null ? MallDresser.Instance.PropsSpawned : 0;
             int landmarksSpawned = MallDresser.Instance != null ? MallDresser.Instance.LandmarksSpawned : 0;
             sb.AppendLine($"Mall: seed={mallSeed} fixed={useFixedSeed} sections={mallSections} anomalyPts={anomalyPts} cctvPts={cctvPts}");
-            sb.AppendLine($"Dressing: props={propsSpawned} landmarks={landmarksSpawned} | Shift+F7: toggle | Shift+F8: re-dress");
+            sb.AppendLine($"Dressing: props={propsSpawned} landmarks={landmarksSpawned} | Shift+F7: toggle | Shift+F8: floor overlap validate");
             sb.AppendLine($"Credits: {credits} | Shift+F2: +100 | Shift+F3: fixedSeed | Shift+F4: regen | Shift+F5: regen new | Shift+F9: reset prog");
 
             var tablet = FindFirstObjectByType<NightShift.UI.SecurityTabletUI>();

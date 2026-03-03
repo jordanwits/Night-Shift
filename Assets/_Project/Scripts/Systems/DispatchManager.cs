@@ -77,11 +77,11 @@ namespace NightShift.Systems
 
         public void OnGameStateExited(GameState state) { }
 
-        private void OnAnomalySpawned(string anomalyId)
+        private void OnAnomalySpawned(string anomalyId, string storeName)
         {
             var definition = FindDefinition(anomalyId);
             bool severe = definition != null && definition.isSevere;
-            string message = PickRealMessage(anomalyId, definition);
+            string message = PickRealMessage(anomalyId, definition, storeName);
             float timestamp = Time.time - _runStartTime;
 
             var alert = DispatchAlert.Create(message, severe ? DispatchSeverity.Severe : DispatchSeverity.Normal, timestamp, false);
@@ -114,18 +114,22 @@ namespace NightShift.Systems
             return null;
         }
 
-        private static string PickRealMessage(string anomalyId, AnomalyDefinition definition)
+        private static string PickRealMessage(string anomalyId, AnomalyDefinition definition, string storeName)
         {
             if (definition != null && !string.IsNullOrEmpty(definition.displayName))
             {
                 if (definition.id.Contains("escalator"))
                     return "Dispatch: Escalator anomaly suspected.";
                 if (definition.id.Contains("mannequin") || definition.id.Contains("rotated"))
-                    return "Dispatch: Unusual movement detected near STOREfront.";
+                    return !string.IsNullOrEmpty(storeName)
+                        ? $"Dispatch: Movement detected near {storeName}."
+                        : "Dispatch: Unusual movement detected near STOREfront.";
                 if (definition.id.Contains("duplicate"))
                     return "Dispatch: Camera feed mismatch reported.";
             }
-            return RealAlertTemplates[Random.Range(0, RealAlertTemplates.Length)];
+            return !string.IsNullOrEmpty(storeName)
+                ? $"Dispatch: Movement detected near {storeName}."
+                : RealAlertTemplates[Random.Range(0, RealAlertTemplates.Length)];
         }
 
         /// <summary>Debug: force a false dispatch alert.</summary>

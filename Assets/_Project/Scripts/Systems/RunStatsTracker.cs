@@ -31,7 +31,7 @@ namespace NightShift.Systems
             GameEvents.OnRunEnded -= OnRunEnded;
         }
 
-        private void OnAnomalySpawned(string _) { if (_runActive) _stats.anomaliesSpawned++; }
+        private void OnAnomalySpawned(string _, string __) { if (_runActive) _stats.anomaliesSpawned++; }
 
         private void OnReportFiled(AnomalyReportData report)
         {

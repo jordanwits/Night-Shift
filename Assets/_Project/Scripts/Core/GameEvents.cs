@@ -38,8 +38,8 @@ namespace NightShift.Core
         public static void RaiseInstabilityThresholdCrossed(int tier) => OnInstabilityThresholdCrossed?.Invoke(tier);
 
         // === Anomaly ===
-        public static event Action<string> OnAnomalySpawned;
-        public static void RaiseAnomalySpawned(string anomalyId) => OnAnomalySpawned?.Invoke(anomalyId);
+        public static event Action<string, string> OnAnomalySpawned;
+        public static void RaiseAnomalySpawned(string anomalyId, string storeName = null) => OnAnomalySpawned?.Invoke(anomalyId, storeName);
 
         public static event Action<string> OnAnomalyFixed;
         public static void RaiseAnomalyFixed(string anomalyId) => OnAnomalyFixed?.Invoke(anomalyId);

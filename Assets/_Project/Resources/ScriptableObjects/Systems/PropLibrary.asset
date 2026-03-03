@@ -1,0 +1,105 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1afa3f7c6cb0b5b40b62fd96551177ab, type: 3}
+  m_Name: PropLibrary
+  m_EditorClassIdentifier: _Project.Generation::NightShift.Generation.PropLibrary
+  props:
+  - id: bench
+    weight: 1.5
+    prefab: {fileID: 0}
+    primitiveType: 0
+    usePrimitive: 1
+    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
+    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    alignToSurfaceNormal: 1
+    isPhysics: 0
+    isLandmark: 1
+  - id: trashcan
+    weight: 1.2
+    prefab: {fileID: 0}
+    primitiveType: 1
+    usePrimitive: 1
+    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
+    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    alignToSurfaceNormal: 1
+    isPhysics: 0
+    isLandmark: 1
+  - id: plant
+    weight: 1
+    prefab: {fileID: 0}
+    primitiveType: 2
+    usePrimitive: 1
+    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
+    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    alignToSurfaceNormal: 1
+    isPhysics: 0
+    isLandmark: 0
+  - id: wetsign
+    weight: 0.8
+    prefab: {fileID: 0}
+    primitiveType: 3
+    usePrimitive: 1
+    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
+    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    alignToSurfaceNormal: 1
+    isPhysics: 0
+    isLandmark: 0
+  - id: kiosk
+    weight: 0.5
+    prefab: {fileID: 0}
+    primitiveType: 4
+    usePrimitive: 1
+    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
+    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    alignToSurfaceNormal: 1
+    isPhysics: 0
+    isLandmark: 1
+  - id: boxstack
+    weight: 1.3
+    prefab: {fileID: 0}
+    primitiveType: 5
+    usePrimitive: 1
+    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
+    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    alignToSurfaceNormal: 1
+    isPhysics: 0
+    isLandmark: 0
+  - id: chair
+    weight: 1.1
+    prefab: {fileID: 0}
+    primitiveType: 6
+    usePrimitive: 1
+    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
+    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    alignToSurfaceNormal: 1
+    isPhysics: 0
+    isLandmark: 0
+  - id: cone
+    weight: 0.7
+    prefab: {fileID: 0}
+    primitiveType: 7
+    usePrimitive: 1
+    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
+    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    alignToSurfaceNormal: 1
+    isPhysics: 0
+    isLandmark: 0
+  - id: soda
+    weight: 0.4
+    prefab: {fileID: 0}
+    primitiveType: 8
+    usePrimitive: 1
+    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
+    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    alignToSurfaceNormal: 1
+    isPhysics: 0
+    isLandmark: 0

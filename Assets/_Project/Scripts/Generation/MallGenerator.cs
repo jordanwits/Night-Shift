@@ -143,6 +143,10 @@ namespace NightShift.Generation
             EnsureCctvComponents();
             LogGenerationSummary();
 
+            var dresser = FindFirstObjectByType<MallDresser>();
+            if (dresser != null)
+                dresser.Dress(_spawnedSections, _generationRoot, _seed);
+
             if (GameStateManager.Instance != null && GameStateManager.Instance.CurrentState == GameState.InRun)
                 ApplySpawnPoints();
         }
@@ -291,6 +295,9 @@ namespace NightShift.Generation
 
         private void ClearExisting()
         {
+            var dresser = FindFirstObjectByType<MallDresser>();
+            dresser?.ClearDressing();
+
             foreach (var s in _spawnedSections)
             {
                 if (s != null && s.gameObject != null)

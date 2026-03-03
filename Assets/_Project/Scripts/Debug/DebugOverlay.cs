@@ -178,8 +178,16 @@ namespace NightShift.Debug
             if (kb.shiftKey.isPressed && kb.f3Key.wasPressedThisFrame && MallGenerator.Instance != null)
                 MallGenerator.Instance.DebugToggleUseFixedSeed();
 
-            // Shift+F7: reset progression
-            if (kb.shiftKey.isPressed && kb.f7Key.wasPressedThisFrame)
+            // Shift+F7: toggle dressing on/off
+            if (kb.shiftKey.isPressed && kb.f7Key.wasPressedThisFrame && MallDresser.Instance != null)
+                MallDresser.Instance.ToggleDressing();
+
+            // Shift+F8: force re-dress current layout (same seed)
+            if (kb.shiftKey.isPressed && kb.f8Key.wasPressedThisFrame && MallDresser.Instance != null)
+                MallDresser.Instance.ForceRedress();
+
+            // Shift+F9: reset progression
+            if (kb.shiftKey.isPressed && kb.f9Key.wasPressedThisFrame)
             {
                 Core.ProgressionData.ClearAll();
                 Systems.UpgradeManager.Instance?.RefreshFromDisk();
@@ -241,8 +249,11 @@ namespace NightShift.Debug
             int mallSections = MallGenerator.Instance != null ? MallGenerator.Instance.SpawnedSections.Count : 0;
             int anomalyPts = MallGenerator.Instance != null ? MallGenerator.Instance.AnomalySpawnPoints.Count : 0;
             int cctvPts = MallGenerator.Instance != null ? MallGenerator.Instance.CctvPoints.Count : 0;
+            int propsSpawned = MallDresser.Instance != null ? MallDresser.Instance.PropsSpawned : 0;
+            int landmarksSpawned = MallDresser.Instance != null ? MallDresser.Instance.LandmarksSpawned : 0;
             sb.AppendLine($"Mall: seed={mallSeed} fixed={useFixedSeed} sections={mallSections} anomalyPts={anomalyPts} cctvPts={cctvPts}");
-            sb.AppendLine($"Credits: {credits} | Shift+F2: +100 | Shift+F3: fixedSeed | Shift+F4: regen | Shift+F5: regen new | Shift+F7: reset");
+            sb.AppendLine($"Dressing: props={propsSpawned} landmarks={landmarksSpawned} | Shift+F7: toggle | Shift+F8: re-dress");
+            sb.AppendLine($"Credits: {credits} | Shift+F2: +100 | Shift+F3: fixedSeed | Shift+F4: regen | Shift+F5: regen new | Shift+F9: reset prog");
 
             var tablet = FindFirstObjectByType<NightShift.UI.SecurityTabletUI>();
             bool tabletOpen = tablet != null && tablet.IsTabletOpen;

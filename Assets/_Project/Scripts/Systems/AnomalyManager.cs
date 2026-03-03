@@ -128,17 +128,18 @@ namespace NightShift.Systems
             }
             else
             {
+                Transform spawnPt = null;
                 var pos = GetGroundSpawnPosition();
                 if (_spawnPoints != null && _spawnPoints.Count > 0)
                 {
-                    var pt = _spawnPoints[_spawnRandom.Next(_spawnPoints.Count)];
-                    if (pt != null)
+                    spawnPt = _spawnPoints[_spawnRandom.Next(_spawnPoints.Count)];
+                    if (spawnPt != null)
                     {
-                        pos = pt.position;
+                        pos = spawnPt.position;
                         pos.y = Mathf.Max(pos.y, 0.5f);
                     }
                 }
-                SpawnAnomaly(pos);
+                SpawnAnomaly(pos, spawnPt);
             }
 
             ScheduleNextSpawn();
@@ -165,7 +166,7 @@ namespace NightShift.Systems
         /// <summary>
         /// Select anomaly via weighted random (spawnWeight), spawn at position.
         /// </summary>
-        public AnomalyInstance SpawnAnomaly(Vector3 position)
+        public AnomalyInstance SpawnAnomaly(Vector3 position, Transform spawnPoint = null)
         {
             var definition = ChooseWeightedDefinition();
             if (definition == null)
@@ -183,7 +184,8 @@ namespace NightShift.Systems
             instance.Definition = definition;
             _activeAnomalies.Add(instance);
 
-            GameEvents.RaiseAnomalySpawned(definition.id);
+            string storeName = GetStoreNameFromSpawnPoint(spawnPoint);
+            GameEvents.RaiseAnomalySpawned(definition.id, storeName);
             GameEvents.RaiseActiveAnomalyCountChanged(_activeAnomalies.Count);
 
             if (CctvManager.Instance != null)
@@ -273,7 +275,21 @@ namespace NightShift.Systems
         public void DebugSpawnAnomaly()
         {
             var pos = GetGroundSpawnPosition();
-            SpawnAnomaly(pos);
+            SpawnAnomaly(pos, null);
+        }
+
+        private static string GetStoreNameFromSpawnPoint(Transform spawnPoint)
+        {
+            if (spawnPoint == null) return null;
+            var t = spawnPoint;
+            while (t != null)
+            {
+                var label = t.GetComponent<SectionLabel>();
+                if (label != null && !string.IsNullOrEmpty(label.storeName))
+                    return label.storeName;
+                t = t.parent;
+            }
+            return null;
         }
 
         private Vector3 GetGroundSpawnPosition()

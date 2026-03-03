@@ -1,11 +1,8 @@
 {
     "name": "_Project.Systems",
-    "rootNamespace": "NightShift.Systems",
+    "rootNamespace": "",
     "references": [
-        "_Project.Core",
-        "Unity.InputSystem",
-        "Unity.Mathematics",
-        "Unity.Collections"
+        "_Project.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -1,94 +1,99 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using UnityEngine.InputSystem;
 using NightShift.Core;
 using NightShift.Systems;
-using NightShift.Generation;
 
 namespace NightShift.Debug
 {
     /// <summary>
-    /// Mandatory debug overlay: time, instability, anomaly count, tier, seed.
+    /// Debug overlay (Unity UI): GameState, Time, Instability.
+    /// F1 toggle, F2 +5 instability, F3 -5, F4 restart run.
     /// </summary>
     public class DebugOverlay : MonoBehaviour
     {
-        [Header("Visibility")]
         [SerializeField] private bool _showOverlay = true;
-        [SerializeField] private KeyCode _toggleKey = KeyCode.F1;
 
-        private GUIStyle _style;
-        private bool _stylesInitialized;
+        private Canvas _canvas;
+        private Text _text;
+        private GameStateManager _stateManager;
+        private GameClock _clock;
+        private InstabilityManager _instability;
+
+        private void Awake()
+        {
+            CreateCanvas();
+            _stateManager = FindFirstObjectByType<GameStateManager>();
+            _clock = FindFirstObjectByType<GameClock>();
+            _instability = FindFirstObjectByType<InstabilityManager>();
+        }
+
+        private void CreateCanvas()
+        {
+            var canvasGo = new GameObject("DebugOverlayCanvas");
+            _canvas = canvasGo.AddComponent<Canvas>();
+            _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            _canvas.sortingOrder = 9999;
+
+            canvasGo.AddComponent<CanvasScaler>();
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var textGo = new GameObject("DebugOverlayText");
+            textGo.transform.SetParent(canvasGo.transform, false);
+
+            var rect = textGo.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0, 1);
+            rect.anchorMax = new Vector2(0, 1);
+            rect.pivot = new Vector2(0, 1);
+            rect.anchoredPosition = new Vector2(10, -10);
+            rect.sizeDelta = new Vector2(400, 120);
+
+            _text = textGo.AddComponent<Text>();
+            _text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _text.fontSize = 16;
+            _text.color = Color.white;
+        }
 
         private void Update()
         {
-            if (Input.GetKeyDown(_toggleKey))
+            var kb = Keyboard.current;
+            if (kb == null) return;
+
+            // F1: toggle overlay
+            if (kb.f1Key.wasPressedThisFrame)
                 _showOverlay = !_showOverlay;
-        }
 
-        private void OnGUI()
-        {
-            if (!_showOverlay) return;
+            // F2: +5 instability
+            if (kb.f2Key.wasPressedThisFrame && _instability != null)
+                _instability.Add(5f);
 
-            InitStyles();
-            float y = 10;
-            float lineHeight = 22;
+            // F3: -5 instability
+            if (kb.f3Key.wasPressedThisFrame && _instability != null)
+                _instability.Add(-5f);
 
-            DrawLine(ref y, lineHeight, $"Time: {GetTime()}");
-            DrawLine(ref y, lineHeight, $"Instability: {GetInstability():F1}%");
-            DrawLine(ref y, lineHeight, $"Active Anomalies: {GetAnomalyCount()}");
-            DrawLine(ref y, lineHeight, $"Tier: {GetTierName()}");
-            DrawLine(ref y, lineHeight, $"Seed: {GetSeed()}");
-        }
+            // F4: restart run (reload scene)
+            if (kb.f4Key.wasPressedThisFrame)
+                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
 
-        private void InitStyles()
-        {
-            if (_stylesInitialized) return;
-            _style = new GUIStyle(GUI.skin.label)
+            if (_showOverlay && _text != null)
             {
-                fontSize = 14,
-                normal = { textColor = Color.white },
-                padding = new RectOffset(10, 10, 4, 4)
-            };
-            _stylesInitialized = true;
+                _canvas.enabled = true;
+                _text.text = BuildOverlayText();
+            }
+            else if (_canvas != null)
+            {
+                _canvas.enabled = false;
+            }
         }
 
-        private void DrawLine(ref float y, float h, string text)
+        private string BuildOverlayText()
         {
-            GUI.Label(new Rect(10, y, 400, h), text, _style);
-            y += h;
-        }
+            string state = _stateManager != null ? _stateManager.CurrentState.ToString() : "-";
+            string time = _clock != null ? _clock.CurrentTimeText : "--:-- AM";
+            float instability = _instability != null ? _instability.Instability : 0f;
 
-        private string GetTime()
-        {
-            return GameTimeManager.Instance != null
-                ? GameTimeManager.Instance.GetFormattedTime()
-                : "--:--";
-        }
-
-        private float GetInstability()
-        {
-            return InstabilityManager.Instance != null
-                ? InstabilityManager.Instance.Instability
-                : 0;
-        }
-
-        private int GetAnomalyCount()
-        {
-            return AnomalyManager.Instance != null
-                ? AnomalyManager.Instance.ActiveCount
-                : 0;
-        }
-
-        private string GetTierName()
-        {
-            if (InstabilityManager.Instance == null) return "-";
-            int tier = InstabilityManager.Instance.CurrentTier;
-            return InstabilityManager.Instance.GetTierName(tier);
-        }
-
-        private int GetSeed()
-        {
-            return MallGenerator.Instance != null
-                ? MallGenerator.Instance.Seed
-                : 0;
+            return $"GameState: {state}\nTime: {time}\nInstability: {instability:F1}%";
         }
     }
 }

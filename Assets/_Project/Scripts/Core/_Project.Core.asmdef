@@ -1,6 +1,6 @@
 {
     "name": "_Project.Core",
-    "rootNamespace": "NightShift.Core",
+    "rootNamespace": "",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],

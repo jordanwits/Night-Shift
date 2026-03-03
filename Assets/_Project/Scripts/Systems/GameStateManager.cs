@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using NightShift.Core;
@@ -5,19 +6,21 @@ using NightShift.Core;
 namespace NightShift.Systems
 {
     /// <summary>
-    /// Manages high-level game state flow: Bootstrap → InRun → EndRun.
-    /// Notifies listeners and raises events for event-driven systems.
+    /// Manages high-level game state: Bootstrap → InRun → EndRun.
+    /// On Play, enters InRun automatically.
     /// </summary>
     public class GameStateManager : MonoBehaviour
     {
         public static GameStateManager Instance { get; private set; }
 
-        [Header("State")]
         [SerializeField] private GameState _currentState = GameState.Bootstrap;
 
         private readonly List<IGameStateListener> _listeners = new List<IGameStateListener>();
 
         public GameState CurrentState => _currentState;
+
+        /// <summary>Fired when state changes. Args: (newState, previousState).</summary>
+        public event Action<GameState, GameState> OnStateChanged;
 
         private void Awake()
         {
@@ -27,25 +30,19 @@ namespace NightShift.Systems
                 return;
             }
             Instance = this;
-            DontDestroyOnLoad(gameObject);
 
+            foreach (var mb in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
+            {
+                if (mb is IGameStateListener listener)
+                    RegisterListener(listener);
+            }
         }
 
         private void Start()
         {
-            // Auto-register listeners (after all Awakes, so GameBootstrap-created managers are found)
-            foreach (var listener in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
-            {
-                if (listener is IGameStateListener gsl)
-                    RegisterListener(gsl);
-            }
-            TransitionTo(GameState.Bootstrap);
-        }
-
-        private void OnDestroy()
-        {
-            if (Instance == this)
-                Instance = null;
+            // On Play: enter InRun automatically
+            if (_currentState == GameState.Bootstrap)
+                TransitionTo(GameState.InRun);
         }
 
         public void RegisterListener(IGameStateListener listener)
@@ -59,45 +56,35 @@ namespace NightShift.Systems
             _listeners.Remove(listener);
         }
 
-        /// <summary>
-        /// Transition to a new game state.
-        /// </summary>
         public void TransitionTo(GameState newState)
         {
             if (_currentState == newState)
                 return;
 
             GameState previous = _currentState;
-            ExitState(previous);
             _currentState = newState;
-            EnterState(_currentState);
 
-            GameEvents.RaiseGameStateChanged(_currentState);
-        }
-
-        /// <summary>
-        /// Debug hook: Force transition (e.g. for testing).
-        /// </summary>
-        public void DebugTransitionTo(GameState state)
-        {
-            TransitionTo(state);
-        }
-
-        private void ExitState(GameState state)
-        {
             for (int i = _listeners.Count - 1; i >= 0; i--)
             {
                 if (i < _listeners.Count)
-                    _listeners[i].OnGameStateExited(state);
+                    _listeners[i].OnGameStateExited(previous);
             }
-        }
-
-        private void EnterState(GameState state)
-        {
             for (int i = 0; i < _listeners.Count; i++)
             {
-                _listeners[i].OnGameStateEntered(state);
+                _listeners[i].OnGameStateEntered(_currentState);
             }
+
+            OnStateChanged?.Invoke(_currentState, previous);
+            GameEvents.RaiseGameStateChanged(_currentState);
+        }
+
+        /// <summary>Debug: force transition to a state.</summary>
+        public void DebugTransitionTo(GameState state) => TransitionTo(state);
+
+        private void OnDestroy()
+        {
+            if (Instance == this)
+                Instance = null;
         }
     }
 }

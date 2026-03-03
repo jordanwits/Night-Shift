@@ -1,11 +1,9 @@
 {
     "name": "_Project.UI",
-    "rootNamespace": "NightShift.UI",
+    "rootNamespace": "",
     "references": [
         "_Project.Core",
-        "_Project.Systems",
-        "Unity.InputSystem",
-        "Unity.ugui"
+        "_Project.Systems"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

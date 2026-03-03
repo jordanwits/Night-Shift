@@ -1,33 +1,34 @@
-using System.Collections.Generic;
+using System;
 using UnityEngine;
 using NightShift.Core;
 
 namespace NightShift.Systems
 {
     /// <summary>
-    /// Global instability meter 0-100. Threshold events at 30, 60, 80.
-    /// Event-driven: other systems subscribe via IInstabilityListener or GameEvents.
+    /// Instability meter 0..100. Methods: Add(float), Set(float).
+    /// Threshold events at 30 / 60 / 80 fire once each per run.
     /// </summary>
     public class InstabilityManager : MonoBehaviour, IGameStateListener
     {
         public static InstabilityManager Instance { get; private set; }
 
-        [Header("Instability")]
-        [SerializeField, Range(0f, 100f)] private float _instability = 0f;
-        [SerializeField] private float _passiveDecayPerSecond = 0.5f; // Slight natural decay
-        [SerializeField] private float _maxInstability = 100f;
+        private const float Min = 0f;
+        private const float Max = 100f;
+        private const int Threshold30 = 30;
+        private const int Threshold60 = 60;
+        private const int Threshold80 = 80;
 
-        [Header("Thresholds")]
-        [SerializeField] private int _lightFlickerTier = 30;
-        [SerializeField] private int _radioDistortionTier = 60;
-        [SerializeField] private int _hallucinationTier = 80;
+        [SerializeField, Range(0f, 100f)] private float _instability;
 
-        private readonly List<IInstabilityListener> _listeners = new List<IInstabilityListener>();
-        private int _currentTier;
         private bool _runActive;
+        private bool _threshold30Fired;
+        private bool _threshold60Fired;
+        private bool _threshold80Fired;
 
         public float Instability => _instability;
-        public int CurrentTier => _currentTier;
+
+        /// <summary>Fired when instability changes.</summary>
+        public event Action<float> OnInstabilityChanged;
 
         private void Awake()
         {
@@ -37,13 +38,6 @@ namespace NightShift.Systems
                 return;
             }
             Instance = this;
-            DontDestroyOnLoad(gameObject);
-
-            foreach (var mb in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
-            {
-                if (mb is IInstabilityListener il)
-                    RegisterListener(il);
-            }
         }
 
         private void OnDestroy()
@@ -52,27 +46,21 @@ namespace NightShift.Systems
                 Instance = null;
         }
 
-        private void Update()
-        {
-            if (!_runActive || _currentState != GameState.InRun)
-                return;
-
-            // Passive decay (optional - keeps instability from permanently sitting at high values)
-            if (_instability > 0 && _passiveDecayPerSecond > 0)
-            {
-                AddInstability(-_passiveDecayPerSecond * Time.deltaTime);
-            }
-        }
-
-        private GameState _currentState;
-
         public void OnGameStateEntered(GameState state)
         {
-            _currentState = state;
             if (state == GameState.InRun)
+            {
                 _runActive = true;
+                _threshold30Fired = false;
+                _threshold60Fired = false;
+                _threshold80Fired = false;
+            }
             else if (state == GameState.Bootstrap)
-                ResetForNewRun();
+            {
+                _instability = 0f;
+                OnInstabilityChanged?.Invoke(_instability);
+                GameEvents.RaiseInstabilityChanged(_instability);
+            }
         }
 
         public void OnGameStateExited(GameState state)
@@ -81,100 +69,63 @@ namespace NightShift.Systems
                 _runActive = false;
         }
 
-        public void RegisterListener(IInstabilityListener listener)
-        {
-            if (listener != null && !_listeners.Contains(listener))
-                _listeners.Add(listener);
-        }
-
-        public void UnregisterListener(IInstabilityListener listener)
-        {
-            _listeners.Remove(listener);
-        }
-
-        /// <summary>
-        /// Add or subtract instability. Clamped 0-100.
-        /// </summary>
-        public void AddInstability(float delta)
+        /// <summary>Add or subtract instability. Clamped 0..100.</summary>
+        public void Add(float delta)
         {
             float previous = _instability;
-            _instability = Mathf.Clamp(_instability + delta, 0f, _maxInstability);
+            _instability = Mathf.Clamp(_instability + delta, Min, Max);
 
             if (Mathf.Approximately(previous, _instability))
                 return;
 
+            OnInstabilityChanged?.Invoke(_instability);
             GameEvents.RaiseInstabilityChanged(_instability);
-            UpdateTier();
-
-            if (_instability >= _maxInstability)
-                GameEvents.RaiseRunEnded(RunEndReason.InstabilityMax);
+            CheckThresholds();
         }
 
-        /// <summary>
-        /// Set instability directly (e.g. for debug slider).
-        /// </summary>
-        public void SetInstability(float value)
+        /// <summary>Set instability directly. Clamped 0..100.</summary>
+        public void Set(float value)
         {
-            float delta = value - _instability;
-            AddInstability(delta);
-        }
+            float previous = _instability;
+            _instability = Mathf.Clamp(value, Min, Max);
 
-        private void UpdateTier()
-        {
-            int newTier = GetTierForValue(_instability);
-            if (newTier == _currentTier)
+            if (Mathf.Approximately(previous, _instability))
                 return;
 
-            int oldTier = _currentTier;
-            _currentTier = newTier;
-
-            GameEvents.RaiseInstabilityThresholdCrossed(_currentTier);
-
-            for (int i = _listeners.Count - 1; i >= 0; i--)
-            {
-                if (i < _listeners.Count)
-                    _listeners[i].OnInstabilityThresholdCrossed(_currentTier);
-            }
-        }
-
-        /// <summary>
-        /// Returns tier: 0 = &lt;30, 1 = 30-59, 2 = 60-79, 3 = 80+.
-        /// </summary>
-        public int GetTierForValue(float value)
-        {
-            if (value >= _hallucinationTier) return 3;
-            if (value >= _radioDistortionTier) return 2;
-            if (value >= _lightFlickerTier) return 1;
-            return 0;
-        }
-
-        /// <summary>
-        /// Human-readable tier name for debug.
-        /// </summary>
-        public string GetTierName(int tier)
-        {
-            switch (tier)
-            {
-                case 1: return "Light Flicker";
-                case 2: return "Radio Distortion";
-                case 3: return "Hallucination";
-                default: return "Stable";
-            }
-        }
-
-        public void ResetForNewRun()
-        {
-            _instability = 0f;
-            _currentTier = 0;
+            OnInstabilityChanged?.Invoke(_instability);
             GameEvents.RaiseInstabilityChanged(_instability);
+            CheckThresholds();
         }
 
-        /// <summary>
-        /// Debug hook: set instability via slider.
-        /// </summary>
-        public void DebugSetInstability(float value)
+        /// <summary>Alias for Add. Kept for compatibility.</summary>
+        public void AddInstability(float delta) => Add(delta);
+
+        /// <summary>Alias for Set. Kept for compatibility.</summary>
+        public void SetInstability(float value) => Set(value);
+
+        /// <summary>Debug: set instability directly.</summary>
+        public void DebugSetInstability(float value) => Set(value);
+
+        private void CheckThresholds()
         {
-            SetInstability(value);
+            if (!_runActive)
+                return;
+
+            if (!_threshold30Fired && _instability >= Threshold30)
+            {
+                _threshold30Fired = true;
+                Debug.Log($"[InstabilityManager] Threshold reached: 30%");
+            }
+            if (!_threshold60Fired && _instability >= Threshold60)
+            {
+                _threshold60Fired = true;
+                Debug.Log($"[InstabilityManager] Threshold reached: 60%");
+            }
+            if (!_threshold80Fired && _instability >= Threshold80)
+            {
+                _threshold80Fired = true;
+                Debug.Log($"[InstabilityManager] Threshold reached: 80%");
+            }
         }
     }
 }

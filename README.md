@@ -2,15 +2,22 @@
 
 Phase 1 playable prototype. Unity 6.3 LTS, URP, Windows Steam target.
 
-## Quick Start
+## Quick Start (Phase 1)
 
 1. Open `Assets/_Project/Scenes/Bootstrap.unity`
 2. Add the scene to Build Settings (File > Build Settings > Add Open Scenes) if needed
-3. Ensure the scene has a Main Camera
-4. Run **Night Shift > Create Default Anomalies** (creates 5 anomaly definitions in `Resources/Anomalies`)
-5. Press Play
+3. Press Play
 
-GameBootstrap auto-creates managers if missing. Player is a capsule with WASD + mouse. Press **E** to fix anomalies in range.
+A "Bootstrap" GameObject is auto-created with GameStateManager, GameClock, InstabilityManager, and DebugOverlay. The overlay updates each frame with game state, time, and instability.
+
+### Debug Hotkeys
+
+| Key | Action |
+|-----|--------|
+| F1  | Toggle overlay visibility |
+| F2  | Add +5 instability |
+| F3  | Subtract 5 instability |
+| F4  | Restart run (reload scene) |
 
 ---
 
@@ -77,25 +84,16 @@ If no section types are assigned, the generator spawns placeholder cubes (Corrid
 
 ---
 
-## How to Test Instability Thresholds
+## How to Test Instability Thresholds (Phase 1)
 
-**Tiers:**
-- 0: Stable
-- 1 (≥30%): Light Flicker
-- 2 (≥60%): Radio Distortion
-- 3 (≥80%): Hallucination
-
-**Debug tools (F2 toggles panel):**
-- **Instability slider**: Set 0–100 directly
-- **Spawn Anomaly**: Add anomaly (increases instability when unfixed)
-- **Quick Restart (F5)**: Reload scene
-
-**Debug overlay (F1 toggles):**
-- Current time
+**Phase 1 debug overlay (F1 toggles):**
+- GameState (Bootstrap → InRun → EndRun)
+- Time (12:00 AM → 6:00 AM format)
 - Instability %
-- Active anomaly count
-- Current tier name
-- Mall seed
+
+**Thresholds (30 / 60 / 80):** Debug.Log when reached, once per run.
+
+**Debug hotkeys:** F1 toggle overlay, F2 +5 instability, F3 -5, F4 restart run.
 
 ---
 

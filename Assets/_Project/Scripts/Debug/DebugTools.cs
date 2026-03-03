@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using NightShift.Systems;
-using NightShift.Generation;
 
 namespace NightShift.Debug
 {

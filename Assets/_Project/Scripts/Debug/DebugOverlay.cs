@@ -3,6 +3,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using NightShift.Core;
+using NightShift.Generation;
 using NightShift.Systems;
 
 namespace NightShift.Debug
@@ -157,16 +158,28 @@ namespace NightShift.Debug
             if (kb.f11Key.wasPressedThisFrame && Player.PlayerVitals.Instance != null)
                 Player.PlayerVitals.Instance.DebugRevive();
 
-            // Shift+F4: skip to 6AM (end run as Survived)
-            if (kb.shiftKey.isPressed && kb.f4Key.wasPressedThisFrame)
+            // Shift+F4: regenerate mall (same seed)
+            if (kb.shiftKey.isPressed && kb.f4Key.wasPressedThisFrame && MallGenerator.Instance != null)
+                MallGenerator.Instance.DebugRegenerateSameSeed();
+
+            // Shift+F5: regenerate mall (new random seed)
+            if (kb.shiftKey.isPressed && kb.f5Key.wasPressedThisFrame && MallGenerator.Instance != null)
+                MallGenerator.Instance.DebugRegenerateNewSeed();
+
+            // Shift+F6: skip to 6AM (end run as Survived)
+            if (kb.shiftKey.isPressed && kb.f6Key.wasPressedThisFrame)
                 Core.GameEvents.RaiseRunEnded(Core.RunEndReason.Survived);
 
             // Shift+F2: add 100 credits
             if (kb.shiftKey.isPressed && kb.f2Key.wasPressedThisFrame && Systems.UpgradeManager.Instance != null)
                 Systems.UpgradeManager.Instance.AddCredits(100);
 
-            // Shift+F3: reset progression
-            if (kb.shiftKey.isPressed && kb.f3Key.wasPressedThisFrame)
+            // Shift+F3: toggle UseFixedSeed (mall)
+            if (kb.shiftKey.isPressed && kb.f3Key.wasPressedThisFrame && MallGenerator.Instance != null)
+                MallGenerator.Instance.DebugToggleUseFixedSeed();
+
+            // Shift+F7: reset progression
+            if (kb.shiftKey.isPressed && kb.f7Key.wasPressedThisFrame)
             {
                 Core.ProgressionData.ClearAll();
                 Systems.UpgradeManager.Instance?.RefreshFromDisk();
@@ -223,7 +236,13 @@ namespace NightShift.Debug
             sb.AppendLine($"Alerts: {totalAlerts} total, {falseAlerts} false");
 
             int credits = Systems.UpgradeManager.Instance != null ? Systems.UpgradeManager.Instance.Credits : 0;
-            sb.AppendLine($"Credits: {credits} | Shift+F2: +100 | Shift+F3: reset | Shift+F4: skip to 6AM");
+            int mallSeed = MallGenerator.Instance != null ? MallGenerator.Instance.Seed : 0;
+            bool useFixedSeed = MallGenerator.Instance != null && MallGenerator.Instance.UseFixedSeed;
+            int mallSections = MallGenerator.Instance != null ? MallGenerator.Instance.SpawnedSections.Count : 0;
+            int anomalyPts = MallGenerator.Instance != null ? MallGenerator.Instance.AnomalySpawnPoints.Count : 0;
+            int cctvPts = MallGenerator.Instance != null ? MallGenerator.Instance.CctvPoints.Count : 0;
+            sb.AppendLine($"Mall: seed={mallSeed} fixed={useFixedSeed} sections={mallSections} anomalyPts={anomalyPts} cctvPts={cctvPts}");
+            sb.AppendLine($"Credits: {credits} | Shift+F2: +100 | Shift+F3: fixedSeed | Shift+F4: regen | Shift+F5: regen new | Shift+F7: reset");
 
             var tablet = FindFirstObjectByType<NightShift.UI.SecurityTabletUI>();
             bool tabletOpen = tablet != null && tablet.IsTabletOpen;

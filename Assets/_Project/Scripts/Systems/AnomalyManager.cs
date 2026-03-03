@@ -18,6 +18,7 @@ namespace NightShift.Systems
 
         [Header("Spawn")]
         [SerializeField] private Transform _spawnRoot;
+        [SerializeField] private List<Transform> _spawnPoints = new List<Transform>();
         [SerializeField] private float _minSpawnIntervalSeconds = 30f;
         [SerializeField] private float _maxSpawnIntervalSeconds = 75f;
         [SerializeField] private int _maxActiveAnomalies = 4;
@@ -128,6 +129,15 @@ namespace NightShift.Systems
             else
             {
                 var pos = GetGroundSpawnPosition();
+                if (_spawnPoints != null && _spawnPoints.Count > 0)
+                {
+                    var pt = _spawnPoints[_spawnRandom.Next(_spawnPoints.Count)];
+                    if (pt != null)
+                    {
+                        pos = pt.position;
+                        pos.y = Mathf.Max(pos.y, 0.5f);
+                    }
+                }
                 SpawnAnomaly(pos);
             }
 
@@ -244,9 +254,22 @@ namespace NightShift.Systems
                 GameEvents.RaiseActiveAnomalyCountChanged(_activeAnomalies.Count);
         }
 
-        /// <summary>
-        /// Debug: spawn anomaly in front of camera at ground level.
-        /// </summary>
+        /// <summary>Set spawn points from mall generator. Overrides default camera-relative spawn.</summary>
+        public void SetSpawnPoints(IEnumerable<Transform> points)
+        {
+            _spawnPoints.Clear();
+            if (points != null)
+            {
+                foreach (var t in points)
+                {
+                    if (t != null)
+                        _spawnPoints.Add(t);
+                }
+            }
+            Debug.Log($"[AnomalyManager] Set {_spawnPoints.Count} spawn points from mall.");
+        }
+
+        /// <summary>Debug: spawn anomaly in front of camera at ground level.</summary>
         public void DebugSpawnAnomaly()
         {
             var pos = GetGroundSpawnPosition();

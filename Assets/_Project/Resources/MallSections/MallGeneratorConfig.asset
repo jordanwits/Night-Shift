@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9beca2be06ae184c9a7e3c34e90b839, type: 3}
+  m_Name: MallGeneratorConfig
+  m_EditorClassIdentifier: _Project.Generation::NightShift.Generation.MallGeneratorConfig
+  startHubPrefab: {fileID: 1082345094630745238, guid: baebd110125125b4caec4c69959eff52, type: 3}
+  sectionPrefabs:
+  - {fileID: 227654325946521695, guid: e191bef4edc7ffb4688eb8a369eb2ce6, type: 3}
+  - {fileID: 7035348093848847068, guid: a90ffe4c99d8d1e4dae3c3e5f43e5b27, type: 3}
+  - {fileID: 7746844380686365969, guid: fba52812549656644a769c2271bff6eb, type: 3}

@@ -3,6 +3,7 @@
     "rootNamespace": "",
     "references": [
         "_Project.Core",
+        "_Project.Player",
         "_Project.Systems"
     ],
     "includePlatforms": [],

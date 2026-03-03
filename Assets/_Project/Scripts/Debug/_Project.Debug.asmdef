@@ -3,6 +3,7 @@
     "rootNamespace": "",
     "references": [
         "_Project.Core",
+        "_Project.Generation",
         "_Project.Player",
         "_Project.Systems",
         "_Project.UI",

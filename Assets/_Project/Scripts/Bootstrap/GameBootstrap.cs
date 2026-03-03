@@ -1,6 +1,7 @@
 using UnityEngine;
 using NightShift.Systems;
 using NightShift.Debug;
+using NightShift.Generation;
 using NightShift.Player;
 using NightShift.UI;
 
@@ -25,6 +26,7 @@ namespace NightShift.Core
         private void Awake()
         {
             EnsureFloor();
+            EnsureComponent<MallGenerator>();
             EnsureComponent<GameClock>();
             EnsureComponent<InstabilityManager>();
             EnsureComponent<AnomalyManager>();

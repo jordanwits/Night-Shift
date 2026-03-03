@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using NightShift.Core;
 using NightShift.Systems;
@@ -117,6 +118,10 @@ namespace NightShift.Generation
 
             int placed = 1;
             int maxSections = Mathf.Clamp(_sectionCount, 2, 50);
+            var prefabPool = GetNonStartPrefabPool();
+            if (prefabPool.Count == 0)
+                Debug.LogWarning("[MallGenerator] Prefab pool is empty (no non-Start section prefabs). Check MallGeneratorConfig or _sectionPrefabs.");
+            Debug.Log($"[MallGenerator] Start: openConnectors={openConnectors.Count} prefabPool={prefabPool.Count} maxSections={maxSections}");
 
             while (placed < maxSections && openConnectors.Count > 0)
             {
@@ -124,13 +129,13 @@ namespace NightShift.Generation
                 var (parentSection, parentConn) = openConnectors[connIdx];
                 openConnectors.RemoveAt(connIdx);
 
-                var nextPrefab = PickRandomSectionPrefab();
-                if (nextPrefab == null) continue;
-
                 bool placedSection = false;
-                for (int t = 0; t < _maxPlacementTries && !placedSection; t++)
+                string rejectReason = "no prefabs";
+                foreach (var nextPrefab in Shuffle(prefabPool))
                 {
-                    if (TryPlaceSection(nextPrefab, parentSection.transform, parentConn, out var newSection, out var newOpenConnectors))
+                    if (nextPrefab == null) continue;
+                    if (TryPlaceSectionExhaustive(nextPrefab, parentSection.transform, parentConn,
+                            out var newSection, out var newOpenConnectors, out rejectReason))
                     {
                         CollectSpawnPoints(newSection);
                         _spawnedSections.Add(newSection);
@@ -139,8 +144,13 @@ namespace NightShift.Generation
                         foreach (var c in newOpenConnectors)
                             openConnectors.Add(c);
                         placedSection = true;
+                        Debug.Log($"[MallGenerator] Placed section {placed}/{maxSections} at connector (prefab={nextPrefab.name})");
+                        break;
                     }
                 }
+
+                if (!placedSection)
+                    Debug.Log($"[MallGenerator] Exhausted connector, could not place (reason: {rejectReason}). Open connectors left: {openConnectors.Count}");
             }
 
             EnsureCctvComponents();
@@ -169,7 +179,7 @@ namespace NightShift.Generation
             return null;
         }
 
-        private GameObject PickRandomSectionPrefab()
+        private List<GameObject> GetNonStartPrefabPool()
         {
             var pool = new List<GameObject>();
             if (_sectionPrefabs != null)
@@ -184,15 +194,66 @@ namespace NightShift.Generation
                     }
                 }
             }
+            return pool;
+        }
+
+        private GameObject PickRandomSectionPrefab()
+        {
+            var pool = GetNonStartPrefabPool();
             if (pool.Count == 0) return null;
             return pool[_rng.Next(pool.Count)];
         }
 
-        private bool TryPlaceSection(GameObject prefab, Transform parentRoot, Transform parentConn,
-            out MallSection newSection, out List<(MallSection, Transform)> newOpenConnectors)
+        private List<T> Shuffle<T>(List<T> list)
+        {
+            var result = new List<T>(list);
+            for (int i = result.Count - 1; i > 0; i--)
+            {
+                int j = _rng.Next(i + 1);
+                (result[i], result[j]) = (result[j], result[i]);
+            }
+            return result;
+        }
+
+        /// <summary>Tries all child connectors for the prefab; returns true if any placement succeeds.</summary>
+        private bool TryPlaceSectionExhaustive(GameObject prefab, Transform parentRoot, Transform parentConn,
+            out MallSection newSection, out List<(MallSection, Transform)> newOpenConnectors, out string rejectReason)
         {
             newSection = null;
             newOpenConnectors = new List<(MallSection, Transform)>();
+            rejectReason = "unknown";
+
+            var ms = prefab.GetComponent<MallSection>();
+            var childConns = ms != null ? ms.ConnectorPoints : new List<Transform>();
+            List<int> indices;
+            if (childConns.Count == 0)
+            {
+                indices = new List<int> { -1 };
+            }
+            else
+            {
+                indices = Shuffle(Enumerable.Range(0, childConns.Count).ToList());
+            }
+
+            foreach (int childConnIdx in indices)
+            {
+                Debug.Log($"[MallGenerator] Attempt: prefab={prefab.name} connIdx={childConnIdx}");
+                if (TryPlaceSection(prefab, parentRoot, parentConn, childConnIdx,
+                        out newSection, out newOpenConnectors, out rejectReason))
+                {
+                    return true;
+                }
+                Debug.Log($"[MallGenerator] Rejected: prefab={prefab.name} connIdx={childConnIdx} reason={rejectReason}");
+            }
+            return false;
+        }
+
+        private bool TryPlaceSection(GameObject prefab, Transform parentRoot, Transform parentConn, int childConnIdx,
+            out MallSection newSection, out List<(MallSection, Transform)> newOpenConnectors, out string rejectReason)
+        {
+            newSection = null;
+            newOpenConnectors = new List<(MallSection, Transform)>();
+            rejectReason = "unknown";
 
             var ms = prefab.GetComponent<MallSection>();
             if (ms == null)
@@ -202,8 +263,9 @@ namespace NightShift.Generation
                 newSection = inst.GetComponent<MallSection>() ?? inst.AddComponent<MallSection>();
                 foreach (var cp in newSection.ConnectorPoints)
                     newOpenConnectors.Add((newSection, cp));
-                if (WouldOverlap(newSection)) { Destroy(inst); newSection = null; return false; }
+                if (WouldOverlap(newSection, out rejectReason)) { Destroy(inst); newSection = null; rejectReason = "overlap"; return false; }
                 ApplyFloorZOffset(newSection, _spawnedSections.Count);
+                rejectReason = null;
                 return true;
             }
 
@@ -213,12 +275,19 @@ namespace NightShift.Generation
                 var pos = NormalizePlacementPosition(parentConn.position);
                 var inst = Instantiate(prefab, pos, Quaternion.identity, _generationRoot);
                 newSection = inst.GetComponent<MallSection>() ?? inst.AddComponent<MallSection>();
-                if (WouldOverlap(newSection)) { Destroy(inst); newSection = null; return false; }
+                if (WouldOverlap(newSection, out rejectReason)) { Destroy(inst); newSection = null; rejectReason = "overlap"; return false; }
                 ApplyFloorZOffset(newSection, _spawnedSections.Count);
+                rejectReason = null;
                 return true;
             }
 
-            int usedConnIdx = _rng.Next(childConns.Count);
+            if (childConnIdx < 0 || childConnIdx >= childConns.Count)
+            {
+                rejectReason = "invalid connector index";
+                return false;
+            }
+
+            int usedConnIdx = childConnIdx;
             Transform childConn = childConns[usedConnIdx];
             Vector3 parentWorldPos = parentConn.position;
             Vector3 parentForward = parentConn.forward;
@@ -226,17 +295,34 @@ namespace NightShift.Generation
             if (parentForward.sqrMagnitude < 0.01f)
                 parentForward = Vector3.forward;
 
+            // Snap: align childConn.forward with -parentForward (facing each other)
             Quaternion rot = Quaternion.FromToRotation(childConn.forward, -parentForward);
-            Vector3 placePos = NormalizePlacementPosition(parentWorldPos - rot * childConn.localPosition);
+            // Position: child connector world pos must equal parent connector world pos exactly
+            Vector3 childConnOffsetInWorld = rot * childConn.localPosition;
+            Vector3 placePos = NormalizePlacementPosition(parentWorldPos - childConnOffsetInWorld);
 
             var instance = Instantiate(prefab, placePos, rot, _generationRoot);
             newSection = instance.GetComponent<MallSection>() ?? instance.AddComponent<MallSection>();
             newSection.CollectMarkersIfNeeded();
 
-            if (WouldOverlap(newSection))
+            // Exact position snap: correct any accumulated offset so connectors align
+            Transform instanceChildConn = newSection.ConnectorPoints[usedConnIdx];
+            if (instanceChildConn != null)
+            {
+                Vector3 actualConnPos = instanceChildConn.position;
+                Vector3 drift = parentWorldPos - actualConnPos;
+                drift.y = 0f;
+                if (drift.sqrMagnitude > 0.0001f)
+                {
+                    instance.transform.position += drift;
+                }
+            }
+
+            if (WouldOverlap(newSection, out rejectReason))
             {
                 Destroy(instance);
                 newSection = null;
+                rejectReason = "overlap";
                 return false;
             }
 
@@ -248,6 +334,7 @@ namespace NightShift.Generation
                 newOpenConnectors.Add((newSection, newConns[i]));
             }
 
+            rejectReason = null;
             return true;
         }
 
@@ -281,52 +368,74 @@ namespace NightShift.Generation
             return pos;
         }
 
-        private bool WouldOverlap(MallSection section)
+        private bool WouldOverlap(MallSection section, out string reason)
         {
-            Bounds newBounds = GetSectionBounds(section);
+            reason = null;
+            Bounds newBounds = GetSectionBoundsFromBoxColliders(section);
             if (newBounds.size.sqrMagnitude < 0.0001f) return false;
 
-            float margin = Mathf.Clamp(_boundsInflation, 0.02f, 0.2f);
-            Bounds shrinkNew = ShrinkBounds(newBounds, margin);
+            // Connectors sit ~0.5u inside section edges; use 0.75 shrink to allow intentional junction overlap
+            Bounds shrinkNew = ShrinkBoundsByFactor(newBounds, 0.75f);
 
             foreach (var existing in _spawnedSections)
             {
                 if (existing == null || existing == section) continue;
                 if (existing.transform == section.transform) continue;
 
-                Bounds existingBounds = GetSectionBounds(existing);
+                Bounds existingBounds = GetSectionBoundsFromBoxColliders(existing);
                 if (existingBounds.size.sqrMagnitude < 0.0001f) continue;
 
-                Bounds shrinkExisting = ShrinkBounds(existingBounds, margin);
+                Bounds shrinkExisting = ShrinkBoundsByFactor(existingBounds, 0.75f);
                 if (shrinkNew.Intersects(shrinkExisting))
+                {
+                    reason = "overlap";
                     return true;
+                }
             }
+            reason = null;
             return false;
         }
 
-        private static Bounds ShrinkBounds(Bounds b, float margin)
+        /// <summary>Shrink bounds by scaling size (e.g. 0.95f = 5% margin per axis).</summary>
+        private static Bounds ShrinkBoundsByFactor(Bounds b, float factor)
         {
-            var size = b.size - Vector3.one * (2f * margin);
+            var size = b.size * factor;
             if (size.x < 0.01f) size.x = 0.01f;
             if (size.y < 0.01f) size.y = 0.01f;
             if (size.z < 0.01f) size.z = 0.01f;
             return new Bounds(b.center, size);
         }
 
+        /// <summary>Bounds from BoxColliders only, ignoring triggers. Use after positioning. Fallback to Renderer if no non-trigger BoxColliders.</summary>
+        private static Bounds GetSectionBoundsFromBoxColliders(MallSection section)
+        {
+            if (section == null) return new Bounds();
+            var boxColliders = section.GetComponentsInChildren<BoxCollider>();
+            bool first = true;
+            Bounds b = default;
+            foreach (var bc in boxColliders)
+            {
+                if (bc == null || bc.isTrigger) continue;
+                if (first) { b = bc.bounds; first = false; }
+                else b.Encapsulate(bc.bounds);
+            }
+            if (!first) return b;
+            var renderers = section.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return new Bounds(section.transform.position, Vector3.zero);
+            b = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+                b.Encapsulate(renderers[i].bounds);
+            return b;
+        }
+
         private static Bounds GetSectionBounds(MallSection section)
         {
             if (section == null) return new Bounds();
+            var bounds = GetSectionBoundsFromBoxColliders(section);
+            if (bounds.size.sqrMagnitude > 0.0001f) return bounds;
             var renderers = section.GetComponentsInChildren<Renderer>();
-            if (renderers.Length == 0)
-            {
-                var colliders = section.GetComponentsInChildren<Collider>();
-                if (colliders.Length == 0) return new Bounds(section.transform.position, Vector3.zero);
-                var b = colliders[0].bounds;
-                for (int i = 1; i < colliders.Length; i++)
-                    b.Encapsulate(colliders[i].bounds);
-                return b;
-            }
-            var bounds = renderers[0].bounds;
+            if (renderers.Length == 0) return bounds;
+            bounds = renderers[0].bounds;
             for (int i = 1; i < renderers.Length; i++)
                 bounds.Encapsulate(renderers[i].bounds);
             return bounds;

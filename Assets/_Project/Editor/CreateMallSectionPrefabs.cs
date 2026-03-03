@@ -90,11 +90,20 @@ namespace NightShift.Editor
                 r.sharedMaterial = mat;
         }
 
+        static void EnsureStructuralCollider(GameObject go)
+        {
+            if (go == null) return;
+            go.layer = 0;
+            var col = go.GetComponent<BoxCollider>();
+            if (col == null) col = go.AddComponent<BoxCollider>();
+            if (col != null) col.isTrigger = false;
+        }
+
         static GameObject CreateWallCube(float width, float height, float depth)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.transform.localScale = new Vector3(width, height, depth);
-            Object.DestroyImmediate(go.GetComponent<Collider>());
+            EnsureStructuralCollider(go);
             return go;
         }
 
@@ -177,6 +186,7 @@ namespace NightShift.Editor
             floor.transform.localPosition = Vector3.zero;
             floor.transform.localScale = new Vector3(size, 0.2f, size);
             ApplyMaterial(floor, _floorLight);
+            EnsureStructuralCollider(floor);
 
             var ceiling = GameObject.CreatePrimitive(PrimitiveType.Cube);
             ceiling.name = "Ceiling";
@@ -233,6 +243,7 @@ namespace NightShift.Editor
             floor.transform.localPosition = Vector3.zero;
             floor.transform.localScale = new Vector3(HallWidth, 0.2f, HallLength);
             ApplyMaterial(floor, _floorLight);
+            EnsureStructuralCollider(floor);
 
             float wallX = halfW + WallThickness * 0.5f;
             var wallL = CreateWallCube(HallLength + WallThickness * 2f, CeilingHeight, WallThickness);
@@ -309,6 +320,7 @@ namespace NightShift.Editor
             floor.transform.localPosition = new Vector3(half, 0f, half);
             floor.transform.localScale = new Vector3(cornerSize, 0.2f, cornerSize);
             ApplyMaterial(floor, _floorLight);
+            EnsureStructuralCollider(floor);
 
             var wallBack = CreateWallCube(cornerSize + WallThickness * 2f, CeilingHeight, WallThickness);
             wallBack.name = "WallBack";
@@ -379,6 +391,7 @@ namespace NightShift.Editor
             floor.transform.localPosition = Vector3.zero;
             floor.transform.localScale = new Vector3(StoreSize, 0.2f, StoreSize);
             ApplyMaterial(floor, _floorDark);
+            EnsureStructuralCollider(floor);
 
             var backWall = CreateWallCube(StoreSize + WallThickness * 2f, CeilingHeight, WallThickness);
             backWall.name = "WallBack";

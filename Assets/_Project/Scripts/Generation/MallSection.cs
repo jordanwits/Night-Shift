@@ -39,11 +39,35 @@ namespace NightShift.Generation
         private void Awake()
         {
             CollectMarkersIfNeeded();
+            EnsureWallColliders();
         }
 
         private void OnValidate()
         {
             CollectMarkersIfNeeded();
+            EnsureWallColliders();
+        }
+
+        /// <summary>Ensures all child objects named *Wall* have a BoxCollider matching their mesh bounds.</summary>
+        private void EnsureWallColliders()
+        {
+            foreach (Transform child in GetComponentsInChildren<Transform>(true))
+            {
+                if (child == transform) continue;
+                if (!child.name.Contains("Wall")) continue;
+
+                GameObject go = child.gameObject;
+                if (go.GetComponent<Collider>() != null) continue;
+
+                var meshFilter = go.GetComponent<MeshFilter>();
+                if (meshFilter == null || meshFilter.sharedMesh == null) continue;
+
+                var box = go.AddComponent<BoxCollider>();
+                box.isTrigger = false;
+                var b = meshFilter.sharedMesh.bounds;
+                box.center = b.center;
+                box.size = b.size;
+            }
         }
 
         /// <summary>Auto-collect markers from children by name/component.</summary>

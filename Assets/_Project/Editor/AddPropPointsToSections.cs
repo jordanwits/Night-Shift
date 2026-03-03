@@ -52,24 +52,24 @@ namespace NightShift.Editor
                 switch (sectionName)
                 {
                     case "StartHub":
-                        AddPropPoint(root, -2f, 0.2f, 2f);
-                        AddPropPoint(root, 2f, 0.2f, -1f);
-                        AddPropPoint(root, 0f, 0.2f, 3f);
+                        AddPropPoint(root, -1.5f, 0.2f, 1.5f);
+                        AddPropPoint(root, 1.5f, 0.2f, -1f);
+                        AddPropPoint(root, 0f, 0.2f, 2.5f);
                         break;
                     case "HallStraight":
-                        AddPropPoint(root, -1.5f, 0.2f, 0f);
-                        AddPropPoint(root, 1.5f, 0.2f, 2f);
+                        AddPropPoint(root, -1.2f, 0.2f, 0f);
+                        AddPropPoint(root, 1.2f, 0.2f, 2f);
                         AddPropPoint(root, 0f, 0.2f, -2f);
                         break;
                     case "HallCorner":
-                        AddPropPoint(root, 4f, 0.2f, 6f);
-                        AddPropPoint(root, 2f, 0.2f, 4f);
+                        AddPropPoint(root, 2.2f, 0.2f, 2.2f);
+                        AddPropPoint(root, 1.5f, 0.2f, 1.5f);
                         break;
                     case "StoreRoom":
-                        AddPropPoint(root, -2f, 0.2f, 1f);
-                        AddPropPoint(root, 2f, 0.2f, -1f);
-                        AddPropPoint(root, -1f, 0.2f, -2f);
-                        AddPropPoint(root, 1.5f, 0.2f, 2f);
+                        AddPropPoint(root, -1.8f, 0.2f, 1f);
+                        AddPropPoint(root, 1.8f, 0.2f, -1f);
+                        AddPropPoint(root, -1f, 0.2f, -1.5f);
+                        AddPropPoint(root, 1.2f, 0.2f, 1.5f);
                         break;
                 }
                 changed = true;
@@ -93,7 +93,7 @@ namespace NightShift.Editor
             {
                 if (sectionName == "StoreRoom")
                 {
-                    AddSignPoint(root, 0f, 2.5f, -3.8f, 0f, 180f, 0f);
+                    AddSignPoint(root, 0f, 2.5f, -3.2f, 0f, 180f, 0f);
                     changed = true;
                 }
             }

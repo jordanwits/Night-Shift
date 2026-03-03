@@ -33,8 +33,10 @@ namespace NightShift.Generation
         [SerializeField] private float _overlapCheckRadiusMin = 0.35f;
         [SerializeField] private float _overlapCheckRadiusMax = 0.6f;
         [SerializeField] private LayerMask _overlapLayers = -1;
-        [SerializeField] private int _minPropsPerSection = 2;
-        [SerializeField] private int _maxPropsPerSection = 6;
+        [SerializeField] private int _minPropsHall = 2;
+        [SerializeField] private int _maxPropsHall = 4;
+        [SerializeField] private int _minPropsStore = 3;
+        [SerializeField] private int _maxPropsStore = 5;
         [SerializeField] private bool _dressingEnabled = true;
 
         private Transform _dressingRoot;
@@ -92,10 +94,12 @@ namespace NightShift.Generation
             var usedStoreNames = new HashSet<string>();
             var usedDirectionTargets = new List<string>();
 
-            foreach (var section in sections)
+            for (int i = 0; i < sections.Count; i++)
             {
+                var section = sections[i];
                 if (section == null) continue;
                 DressSection(section, usedStoreNames);
+                ApplySectionMaterials(section, i);
 
                 if (section.IsStart)
                     AddStartHubDirectionSigns(section, usedDirectionTargets);
@@ -116,7 +120,9 @@ namespace NightShift.Generation
 
             if (propPoints.Count > 0 && _propLibrary != null)
             {
-                int count = _rng.Next(_minPropsPerSection, Mathf.Min(_maxPropsPerSection + 1, propPoints.Count + 1));
+                int maxProps = isStoreRoom ? _maxPropsStore : _maxPropsHall;
+                int minProps = isStoreRoom ? _minPropsStore : _minPropsHall;
+                int count = _rng.Next(minProps, Mathf.Min(maxProps + 1, propPoints.Count + 1));
                 var shuffled = new List<Transform>(propPoints);
                 Shuffle(shuffled);
 
@@ -135,6 +141,25 @@ namespace NightShift.Generation
                 if (pt != null && TrySpawnProp(pt, section.transform, true, isStoreRoom))
                     _landmarksSpawned++;
             }
+        }
+
+        private void ApplySectionMaterials(MallSection section, int sectionIndex)
+        {
+            var floorLight = Resources.Load<Material>("MallMaterials/Floor_Light");
+            var floorDark = Resources.Load<Material>("MallMaterials/Floor_Dark");
+            if (floorLight == null || floorDark == null) return;
+
+            bool isStoreRoom = !section.IsStart && section.ConnectorPoints.Count == 1;
+            var floor = section.transform.Find("Floor");
+            if (floor == null) return;
+
+            var r = floor.GetComponent<Renderer>();
+            if (r == null) return;
+
+            if (isStoreRoom)
+                r.sharedMaterial = floorDark;
+            else
+                r.sharedMaterial = (sectionIndex % 2 == 0) ? floorLight : floorDark;
         }
 
         private bool TrySpawnProp(Transform point, Transform sectionRoot, bool isLandmark, bool isStoreRoom)
@@ -263,10 +288,21 @@ namespace NightShift.Generation
         private GameObject CreateSignObject(string text, float width, float height, Vector3 facing)
         {
             var go = new GameObject("Sign");
+            var backing = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            backing.name = "Backing";
+            backing.transform.SetParent(go.transform);
+            backing.transform.localPosition = new Vector3(0f, 0f, -0.02f);
+            backing.transform.localRotation = Quaternion.identity;
+            backing.transform.localScale = new Vector3(width + 0.1f, height + 0.1f, 0.05f);
+            var accentMat = Resources.Load<Material>("MallMaterials/Accent_Color");
+            if (accentMat != null)
+                backing.GetComponent<Renderer>().sharedMaterial = accentMat;
+            Object.DestroyImmediate(backing.GetComponent<Collider>());
+
             var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
             quad.name = "Quad";
             quad.transform.SetParent(go.transform);
-            quad.transform.localPosition = Vector3.zero;
+            quad.transform.localPosition = new Vector3(0f, 0f, 0.01f);
             quad.transform.localRotation = Quaternion.identity;
             quad.transform.localScale = new Vector3(width, height, 1f);
 
@@ -277,7 +313,7 @@ namespace NightShift.Generation
 
             var textGo = new GameObject("Text");
             textGo.transform.SetParent(go.transform);
-            textGo.transform.localPosition = new Vector3(0, 0, -0.02f);
+            textGo.transform.localPosition = new Vector3(0, 0, 0.02f);
             textGo.transform.localRotation = Quaternion.Euler(0, 180f, 0);
             textGo.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
 

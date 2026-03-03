@@ -18,8 +18,8 @@ MonoBehaviour:
     prefab: {fileID: 0}
     primitiveType: 0
     usePrimitive: 1
-    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
-    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    localScaleMin: {x: 1.0, y: 1.0, z: 1.0}
+    localScaleMax: {x: 1.35, y: 1.35, z: 1.35}
     alignToSurfaceNormal: 1
     isPhysics: 0
     isLandmark: 1
@@ -28,8 +28,8 @@ MonoBehaviour:
     prefab: {fileID: 0}
     primitiveType: 1
     usePrimitive: 1
-    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
-    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    localScaleMin: {x: 1.0, y: 1.0, z: 1.0}
+    localScaleMax: {x: 1.35, y: 1.35, z: 1.35}
     alignToSurfaceNormal: 1
     isPhysics: 0
     isLandmark: 1
@@ -38,8 +38,8 @@ MonoBehaviour:
     prefab: {fileID: 0}
     primitiveType: 2
     usePrimitive: 1
-    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
-    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    localScaleMin: {x: 1.0, y: 1.0, z: 1.0}
+    localScaleMax: {x: 1.35, y: 1.35, z: 1.35}
     alignToSurfaceNormal: 1
     isPhysics: 0
     isLandmark: 0
@@ -48,8 +48,8 @@ MonoBehaviour:
     prefab: {fileID: 0}
     primitiveType: 3
     usePrimitive: 1
-    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
-    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    localScaleMin: {x: 1.0, y: 1.0, z: 1.0}
+    localScaleMax: {x: 1.35, y: 1.35, z: 1.35}
     alignToSurfaceNormal: 1
     isPhysics: 0
     isLandmark: 0
@@ -58,8 +58,8 @@ MonoBehaviour:
     prefab: {fileID: 0}
     primitiveType: 4
     usePrimitive: 1
-    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
-    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    localScaleMin: {x: 1.0, y: 1.0, z: 1.0}
+    localScaleMax: {x: 1.35, y: 1.35, z: 1.35}
     alignToSurfaceNormal: 1
     isPhysics: 0
     isLandmark: 1
@@ -68,8 +68,8 @@ MonoBehaviour:
     prefab: {fileID: 0}
     primitiveType: 5
     usePrimitive: 1
-    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
-    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    localScaleMin: {x: 1.0, y: 1.0, z: 1.0}
+    localScaleMax: {x: 1.35, y: 1.35, z: 1.35}
     alignToSurfaceNormal: 1
     isPhysics: 0
     isLandmark: 0
@@ -78,8 +78,8 @@ MonoBehaviour:
     prefab: {fileID: 0}
     primitiveType: 6
     usePrimitive: 1
-    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
-    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    localScaleMin: {x: 1.0, y: 1.0, z: 1.0}
+    localScaleMax: {x: 1.35, y: 1.35, z: 1.35}
     alignToSurfaceNormal: 1
     isPhysics: 0
     isLandmark: 0
@@ -88,8 +88,8 @@ MonoBehaviour:
     prefab: {fileID: 0}
     primitiveType: 7
     usePrimitive: 1
-    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
-    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    localScaleMin: {x: 1.0, y: 1.0, z: 1.0}
+    localScaleMax: {x: 1.35, y: 1.35, z: 1.35}
     alignToSurfaceNormal: 1
     isPhysics: 0
     isLandmark: 0
@@ -98,8 +98,8 @@ MonoBehaviour:
     prefab: {fileID: 0}
     primitiveType: 8
     usePrimitive: 1
-    localScaleMin: {x: 0.8, y: 0.8, z: 0.8}
-    localScaleMax: {x: 1.2, y: 1.2, z: 1.2}
+    localScaleMin: {x: 1.0, y: 1.0, z: 1.0}
+    localScaleMax: {x: 1.35, y: 1.35, z: 1.35}
     alignToSurfaceNormal: 1
     isPhysics: 0
     isLandmark: 0

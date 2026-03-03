@@ -171,6 +171,9 @@ namespace NightShift.Systems
             GameEvents.RaiseAnomalySpawned(definition.id);
             GameEvents.RaiseActiveAnomalyCountChanged(_activeAnomalies.Count);
 
+            if (CctvManager.Instance != null)
+                CctvManager.Instance.MarkRandomSuspicious(true, 20f);
+
             Debug.Log($"[AnomalyManager] Spawned {definition.id} at {position}");
             return instance;
         }

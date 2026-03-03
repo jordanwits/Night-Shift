@@ -33,6 +33,8 @@ namespace NightShift.Player
         {
             if (ReportUIController.IsOpen)
                 return;
+            if (SecurityTabletUI.Instance != null && SecurityTabletUI.Instance.IsTabletOpen)
+                return;
 
             float h = 0f;
             float v = 0f;

@@ -97,6 +97,11 @@ namespace NightShift.Systems
             _totalAlertsSent++;
             _falseAlertsSent++;
             GameEvents.RaiseDispatchAlert(alert);
+
+            float inst = InstabilityManager.Instance != null ? InstabilityManager.Instance.Instability : 0f;
+            float chance = inst < 30f ? 0f : inst < 60f ? 0.2f : inst < 80f ? 0.4f : 0.6f;
+            if (Random.value < chance && CctvManager.Instance != null)
+                CctvManager.Instance.MarkRandomSuspicious(false, 20f);
         }
 
         private AnomalyDefinition FindDefinition(string anomalyId)

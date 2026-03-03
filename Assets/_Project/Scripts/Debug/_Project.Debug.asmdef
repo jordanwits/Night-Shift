@@ -4,6 +4,7 @@
     "references": [
         "_Project.Core",
         "_Project.Systems",
+        "_Project.UI",
         "Unity.ugui",
         "Unity.InputSystem"
     ],

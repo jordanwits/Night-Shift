@@ -30,6 +30,8 @@ namespace NightShift.Core
             EnsureComponent<AnomalyManager>();
             EnsureComponent<DispatchManager>();
             EnsureComponent<AlertFeedUI>();
+            EnsureCctvSystem();
+            EnsureComponent<SecurityTabletUI>();
             EnsureComponent<DebugOverlay>();
             EnsureComponent<ReportUIController>();
             EnsurePlayer();
@@ -45,6 +47,35 @@ namespace NightShift.Core
             floor.name = "Floor";
             floor.transform.position = Vector3.zero;
             floor.transform.localScale = new Vector3(5f, 1f, 5f);
+        }
+
+        private void EnsureCctvSystem()
+        {
+            if (FindFirstObjectByType<CctvManager>() != null)
+                return;
+
+            var cctvRoot = GameObject.Find("CCTV");
+            if (cctvRoot == null)
+            {
+                cctvRoot = new GameObject("CCTV");
+            }
+
+            for (int i = 1; i <= 3; i++)
+            {
+                var childName = $"CAM-0{i}";
+                if (cctvRoot.transform.Find(childName) != null)
+                    continue;
+
+                var point = new GameObject(childName);
+                point.transform.SetParent(cctvRoot.transform);
+                point.transform.localPosition = new Vector3((i - 2) * 8f, 4f, 5f);
+                var lookAt = new Vector3(0f, 1.5f, 0f) - point.transform.position;
+                point.transform.rotation = Quaternion.LookRotation(lookAt.normalized, Vector3.up);
+
+                point.AddComponent<CctvCameraPoint>();
+            }
+
+            EnsureComponent<CctvManager>();
         }
 
         private void EnsureComponent<T>() where T : Component

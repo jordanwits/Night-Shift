@@ -11,6 +11,7 @@ namespace NightShift.Debug
     /// Debug overlay (Unity UI): GameState, Time, Instability.
     /// F1 toggle, F2 +5 instability, F3 -5, F4 restart run.
     /// </summary>
+    [DefaultExecutionOrder(-100)]
     public class DebugOverlay : MonoBehaviour
     {
         [SerializeField] private bool _showOverlay = true;
@@ -86,7 +87,7 @@ namespace NightShift.Debug
             _canvas.sortingOrder = 9999;
 
             canvasGo.AddComponent<CanvasScaler>();
-            canvasGo.AddComponent<GraphicRaycaster>();
+            // No GraphicRaycaster - overlay is display-only and was blocking tablet button clicks
 
             var textGo = new GameObject("DebugOverlayText");
             textGo.transform.SetParent(canvasGo.transform, false);
@@ -102,6 +103,7 @@ namespace NightShift.Debug
             _text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             _text.fontSize = 16;
             _text.color = Color.white;
+            _text.raycastTarget = false;
         }
 
         private void Update()
@@ -136,6 +138,14 @@ namespace NightShift.Debug
             // F7: force false dispatch alert
             if (kb.f7Key.wasPressedThisFrame && _dispatchManager != null)
                 _dispatchManager.DebugForceFalseAlert();
+
+            // F8: mark random camera suspicious (real)
+            if (kb.f8Key.wasPressedThisFrame && CctvManager.Instance != null)
+                CctvManager.Instance.DebugMarkSuspiciousReal();
+
+            // F9: mark random camera suspicious (false)
+            if (kb.f9Key.wasPressedThisFrame && CctvManager.Instance != null)
+                CctvManager.Instance.DebugMarkSuspiciousFalse();
 
             if (_showOverlay && _text != null)
             {
@@ -172,6 +182,16 @@ namespace NightShift.Debug
             sb.AppendLine($"Reports: {reports} (✓{correct} ✗{incorrect})");
             sb.AppendLine($"False alert chance: {falseChance * 100:F0}%");
             sb.AppendLine($"Alerts: {totalAlerts} total, {falseAlerts} false");
+
+            var tablet = FindFirstObjectByType<NightShift.UI.SecurityTabletUI>();
+            bool tabletOpen = tablet != null && tablet.IsTabletOpen;
+            string camName = CctvManager.Instance?.CurrentCamera?.CameraName ?? "-";
+            bool camSuspicious = CctvManager.Instance != null && CctvManager.Instance.IsCurrentCameraSuspicious;
+            int camIndex = CctvManager.Instance != null ? CctvManager.Instance.CurrentIndex : -1;
+            int camCount = CctvManager.Instance != null ? CctvManager.Instance.Cameras.Count : 0;
+            int displayedSuspicious = CctvManager.Instance != null ? CctvManager.Instance.DisplayedSuspiciousIndex : -1;
+            int tier = instability >= 80f ? 3 : instability >= 60f ? 2 : instability >= 30f ? 1 : 0;
+            sb.AppendLine($"Tablet: {(tabletOpen ? "OPEN" : "closed")} | Cam: {camName} ({camIndex + 1}/{camCount}) | Suspicious: {camSuspicious} (idx {displayedSuspicious + 1}) | Distort: T{tier}");
 
             if (!string.IsNullOrEmpty(_lastDistortedAlert) && instability >= 60f && Time.time - _distortedAlertTime < 30f)
                 sb.AppendLine($"[Distorted] {_lastDistortedAlert}");

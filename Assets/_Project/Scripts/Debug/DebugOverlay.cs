@@ -100,7 +100,11 @@ namespace NightShift.Debug
             float instability = _instability != null ? _instability.Instability : 0f;
             int anomalies = _anomalyManager != null ? _anomalyManager.ActiveCount : 0;
 
-            return $"GameState: {state}\nTime: {time}\nInstability: {instability:F1}%\nAnomalies: {anomalies}";
+            int reports = _anomalyManager != null ? _anomalyManager.TotalReports : 0;
+            int correct = _anomalyManager != null ? _anomalyManager.CorrectReports : 0;
+            int incorrect = _anomalyManager != null ? _anomalyManager.IncorrectReports : 0;
+
+            return $"GameState: {state}\nTime: {time}\nInstability: {instability:F1}%\nAnomalies: {anomalies}\nReports: {reports} (✓{correct} ✗{incorrect})";
         }
     }
 }

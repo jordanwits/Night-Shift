@@ -1,10 +1,12 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using NightShift.UI;
 
 namespace NightShift.Player
 {
     /// <summary>
     /// Simple first-person movement. Yaw on body, pitch on camera. Uses Input System package.
+    /// Blocks look/move when report UI is open.
     /// </summary>
     public class PlayerController : MonoBehaviour
     {
@@ -29,6 +31,9 @@ namespace NightShift.Player
 
         private void Update()
         {
+            if (ReportUIController.IsOpen)
+                return;
+
             float h = 0f;
             float v = 0f;
 

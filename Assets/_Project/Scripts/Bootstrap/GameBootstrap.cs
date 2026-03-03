@@ -2,6 +2,7 @@ using UnityEngine;
 using NightShift.Systems;
 using NightShift.Debug;
 using NightShift.Player;
+using NightShift.UI;
 
 namespace NightShift.Core
 {
@@ -28,6 +29,7 @@ namespace NightShift.Core
             EnsureComponent<InstabilityManager>();
             EnsureComponent<AnomalyManager>();
             EnsureComponent<DebugOverlay>();
+            EnsureComponent<ReportUIController>();
             EnsurePlayer();
             EnsureComponent<GameStateManager>();
         }

@@ -2,29 +2,38 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using NightShift.Core;
 using NightShift.Systems;
+using NightShift.UI;
 
 namespace NightShift.Player
 {
     /// <summary>
-    /// Detects anomalies in range and resolves on E key.
-    /// Temporary: E = correct fix (Resolve(true)).
-    /// Uses Input System package.
+    /// Detects anomalies in range. R opens report UI when near an active anomaly.
     /// </summary>
     public class PlayerInteraction : MonoBehaviour
     {
         [Header("Detection")]
         [SerializeField] private float _interactionRange = 5f;
 
+        private ReportUIController _reportUI;
+
+        private void Start()
+        {
+            _reportUI = FindFirstObjectByType<ReportUIController>();
+        }
+
         private void Update()
         {
             if (GameStateManager.Instance?.CurrentState != GameState.InRun)
                 return;
 
+            if (ReportUIController.IsOpen)
+                return;
+
             var target = FindNearestAnomaly();
             var kb = Keyboard.current;
-            if (target != null && kb != null && kb.eKey.wasPressedThisFrame)
+            if (target != null && kb != null && kb.rKey.wasPressedThisFrame && _reportUI != null)
             {
-                target.Resolve(true);
+                _reportUI.Show(target);
             }
         }
 

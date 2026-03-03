@@ -21,9 +21,17 @@ namespace NightShift.Systems
         [SerializeField] private float _firstSpawnDelay = 10f;
 
         private readonly List<AnomalyInstance> _activeAnomalies = new List<AnomalyInstance>();
+        private readonly List<AnomalyReportData> _reports = new List<AnomalyReportData>();
+        private float _runStartTime;
         private bool _running;
 
         public IReadOnlyList<AnomalyInstance> ActiveAnomalies => _activeAnomalies;
+        public IReadOnlyList<AnomalyDefinition> AvailableDefinitions => _availableAnomalies;
+        public IReadOnlyList<AnomalyReportData> Reports => _reports;
+        public int TotalReports => _reports.Count;
+        public int CorrectReports => _reports.FindAll(r => r.wasCorrect).Count;
+        public int IncorrectReports => _reports.FindAll(r => !r.wasCorrect).Count;
+        public float RunElapsedSeconds => _running ? Time.time - _runStartTime : 0f;
         public int ActiveCount => _activeAnomalies.Count;
 
         private void Awake()
@@ -70,8 +78,10 @@ namespace NightShift.Systems
             if (state == GameState.InRun)
             {
                 _running = true;
-                Invoke(nameof(SpawnFirstTestAnomaly), _firstSpawnDelay);
+                _runStartTime = Time.time;
+                _reports.Clear();
                 _activeAnomalies.Clear();
+                Invoke(nameof(SpawnFirstTestAnomaly), _firstSpawnDelay);
             }
         }
 
@@ -144,6 +154,30 @@ namespace NightShift.Systems
             }
 
             return _availableAnomalies[0];
+        }
+
+        /// <summary>
+        /// File a report for an anomaly. Compares reported type to actual, applies reward/penalty, resolves anomaly.
+        /// </summary>
+        public void FileReport(AnomalyInstance instance, AnomalyDefinition reportedDefinition)
+        {
+            if (instance == null || !instance.IsActive)
+                return;
+
+            bool correct = reportedDefinition != null && instance.Definition != null &&
+                reportedDefinition.id == instance.Definition.id;
+
+            float timestamp = RunElapsedSeconds;
+            var report = AnomalyReportData.Create(
+                reportedDefinition?.id ?? string.Empty,
+                instance.Definition?.id ?? string.Empty,
+                correct,
+                timestamp);
+
+            _reports.Add(report);
+            GameEvents.RaiseReportFiled(report);
+
+            instance.Resolve(correct);
         }
 
         /// <summary>

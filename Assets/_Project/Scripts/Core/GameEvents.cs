@@ -32,6 +32,9 @@ namespace NightShift.Core
         public static event Action<int> OnActiveAnomalyCountChanged;
         public static void RaiseActiveAnomalyCountChanged(int count) => OnActiveAnomalyCountChanged?.Invoke(count);
 
+        public static event Action<AnomalyReportData> OnReportFiled;
+        public static void RaiseReportFiled(AnomalyReportData report) => OnReportFiled?.Invoke(report);
+
         // === Time ===
         public static event Action<float> OnGameTimeChanged;
         public static void RaiseGameTimeChanged(float time) => OnGameTimeChanged?.Invoke(time);
@@ -55,6 +58,7 @@ namespace NightShift.Core
             OnAnomalyFixed = null;
             OnAnomalyFailed = null;
             OnActiveAnomalyCountChanged = null;
+            OnReportFiled = null;
             OnGameTimeChanged = null;
             OnSixAMReached = null;
             OnRunEnded = null;

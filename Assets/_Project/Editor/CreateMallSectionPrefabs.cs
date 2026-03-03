@@ -23,6 +23,7 @@ namespace NightShift.Editor
         private const float CeilingThickness = 0.1f;
         private const float TrimHeight = 0.1f;
         private const float TrimDepth = 0.15f;
+        private const float TrimWallOffset = 0.015f;
 
         static Material _floorLight;
         static Material _floorDark;
@@ -256,7 +257,7 @@ namespace NightShift.Editor
 
             for (int i = 0; i < 2; i++)
             {
-                float x = i == 0 ? -wallX : wallX;
+                float x = i == 0 ? (-wallX - TrimWallOffset) : (wallX + TrimWallOffset);
                 var trim = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 trim.name = "Trim" + (i == 0 ? "Left" : "Right");
                 trim.transform.SetParent(root.transform);
@@ -332,7 +333,8 @@ namespace NightShift.Editor
             var trim = GameObject.CreatePrimitive(PrimitiveType.Cube);
             trim.name = "Trim";
             trim.transform.SetParent(root.transform);
-            trim.transform.localPosition = new Vector3(half, CeilingHeight - TrimHeight * 0.5f, half);
+            float trimOffset = TrimWallOffset * 0.707f;
+            trim.transform.localPosition = new Vector3(half - trimOffset, CeilingHeight - TrimHeight * 0.5f, half - trimOffset);
             trim.transform.localScale = new Vector3(cornerSize, TrimHeight, TrimDepth);
             trim.transform.localRotation = Quaternion.Euler(0f, 45f, 0f);
             ApplyMaterial(trim, _accentColor);
@@ -408,7 +410,7 @@ namespace NightShift.Editor
             var trimBack = GameObject.CreatePrimitive(PrimitiveType.Cube);
             trimBack.name = "TrimBack";
             trimBack.transform.SetParent(root.transform);
-            trimBack.transform.localPosition = new Vector3(0f, trimY, half);
+            trimBack.transform.localPosition = new Vector3(0f, trimY, half - TrimWallOffset);
             trimBack.transform.localScale = new Vector3(StoreSize, TrimHeight, TrimDepth);
             ApplyMaterial(trimBack, _accentColor);
             Object.DestroyImmediate(trimBack.GetComponent<Collider>());
@@ -416,7 +418,7 @@ namespace NightShift.Editor
             var trimLeft = GameObject.CreatePrimitive(PrimitiveType.Cube);
             trimLeft.name = "TrimLeft";
             trimLeft.transform.SetParent(root.transform);
-            trimLeft.transform.localPosition = new Vector3(-half, trimY, 0f);
+            trimLeft.transform.localPosition = new Vector3(-half + TrimWallOffset, trimY, 0f);
             trimLeft.transform.localScale = new Vector3(TrimDepth, TrimHeight, StoreSize);
             ApplyMaterial(trimLeft, _accentColor);
             Object.DestroyImmediate(trimLeft.GetComponent<Collider>());
@@ -424,7 +426,7 @@ namespace NightShift.Editor
             var trimRight = GameObject.CreatePrimitive(PrimitiveType.Cube);
             trimRight.name = "TrimRight";
             trimRight.transform.SetParent(root.transform);
-            trimRight.transform.localPosition = new Vector3(half, trimY, 0f);
+            trimRight.transform.localPosition = new Vector3(half - TrimWallOffset, trimY, 0f);
             trimRight.transform.localScale = new Vector3(TrimDepth, TrimHeight, StoreSize);
             ApplyMaterial(trimRight, _accentColor);
             Object.DestroyImmediate(trimRight.GetComponent<Collider>());

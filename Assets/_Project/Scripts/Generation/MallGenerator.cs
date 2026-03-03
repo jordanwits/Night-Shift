@@ -23,6 +23,7 @@ namespace NightShift.Generation
         [SerializeField] private float _connectorSnapDistance = 1.5f;
         [SerializeField] private Transform _generationRoot;
         [SerializeField] private int _maxPlacementTries = 5;
+        [SerializeField] private float _boundsInflation = 0.05f;
 
         private System.Random _rng;
 
@@ -99,12 +100,14 @@ namespace NightShift.Generation
                 return;
             }
 
-            var start = Instantiate(startPrefab, _generationRoot.position, Quaternion.identity, _generationRoot);
+            var startPos = NormalizePlacementPosition(_generationRoot.position);
+            var start = Instantiate(startPrefab, startPos, Quaternion.identity, _generationRoot);
             start.name = "StartHub_0";
             var startSection = start.GetComponent<MallSection>();
             if (startSection == null)
                 startSection = start.AddComponent<MallSection>();
 
+            ApplyFloorZOffset(startSection, 0);
             CollectSpawnPoints(startSection);
             _spawnedSections.Add(startSection);
 
@@ -194,19 +197,25 @@ namespace NightShift.Generation
             var ms = prefab.GetComponent<MallSection>();
             if (ms == null)
             {
-                var inst = Instantiate(prefab, parentConn.position, Quaternion.identity, _generationRoot);
+                var pos = NormalizePlacementPosition(parentConn.position);
+                var inst = Instantiate(prefab, pos, Quaternion.identity, _generationRoot);
                 newSection = inst.GetComponent<MallSection>() ?? inst.AddComponent<MallSection>();
                 foreach (var cp in newSection.ConnectorPoints)
                     newOpenConnectors.Add((newSection, cp));
-                return !WouldOverlap(newSection);
+                if (WouldOverlap(newSection)) { Destroy(inst); newSection = null; return false; }
+                ApplyFloorZOffset(newSection, _spawnedSections.Count);
+                return true;
             }
 
             var childConns = ms.ConnectorPoints;
             if (childConns.Count == 0)
             {
-                var inst = Instantiate(prefab, parentConn.position, Quaternion.identity, _generationRoot);
+                var pos = NormalizePlacementPosition(parentConn.position);
+                var inst = Instantiate(prefab, pos, Quaternion.identity, _generationRoot);
                 newSection = inst.GetComponent<MallSection>() ?? inst.AddComponent<MallSection>();
-                return !WouldOverlap(newSection);
+                if (WouldOverlap(newSection)) { Destroy(inst); newSection = null; return false; }
+                ApplyFloorZOffset(newSection, _spawnedSections.Count);
+                return true;
             }
 
             int usedConnIdx = _rng.Next(childConns.Count);
@@ -218,7 +227,7 @@ namespace NightShift.Generation
                 parentForward = Vector3.forward;
 
             Quaternion rot = Quaternion.FromToRotation(childConn.forward, -parentForward);
-            Vector3 placePos = parentWorldPos - rot * childConn.localPosition;
+            Vector3 placePos = NormalizePlacementPosition(parentWorldPos - rot * childConn.localPosition);
 
             var instance = Instantiate(prefab, placePos, rot, _generationRoot);
             newSection = instance.GetComponent<MallSection>() ?? instance.AddComponent<MallSection>();
@@ -231,6 +240,7 @@ namespace NightShift.Generation
                 return false;
             }
 
+            ApplyFloorZOffset(newSection, _spawnedSections.Count);
             var newConns = newSection.ConnectorPoints;
             for (int i = 0; i < newConns.Count; i++)
             {
@@ -241,27 +251,85 @@ namespace NightShift.Generation
             return true;
         }
 
+        private const float FloorZOffsetAmount = 0.002f;
+
+        private static void ApplyFloorZOffset(MallSection section, int sectionIndex)
+        {
+            if (section == null) return;
+            float off = (sectionIndex % 2 == 0) ? 0f : FloorZOffsetAmount;
+            var floor = section.transform.Find("Floor");
+            if (floor != null)
+            {
+                var fp = floor.localPosition;
+                fp.y += off;
+                floor.localPosition = fp;
+            }
+            var ceiling = section.transform.Find("Ceiling");
+            if (ceiling != null)
+            {
+                var cp = ceiling.localPosition;
+                cp.y -= off;
+                ceiling.localPosition = cp;
+            }
+        }
+
+        /// <summary>Snap Y to base height. No floating offsets to ensure floor consistency.</summary>
+        private Vector3 NormalizePlacementPosition(Vector3 pos)
+        {
+            float baseY = _generationRoot != null ? _generationRoot.position.y : 0f;
+            pos.y = baseY;
+            return pos;
+        }
+
         private bool WouldOverlap(MallSection section)
         {
-            var col = section.GetComponentInChildren<Collider>();
-            if (col == null) return false;
+            Bounds newBounds = GetSectionBounds(section);
+            if (newBounds.size.sqrMagnitude < 0.0001f) return false;
 
-            var bounds = col.bounds;
-            var center = bounds.center;
-            var halfExtents = bounds.extents;
+            float margin = Mathf.Clamp(_boundsInflation, 0.02f, 0.2f);
+            Bounds shrinkNew = ShrinkBounds(newBounds, margin);
 
-            var hits = Physics.OverlapBox(center, halfExtents, Quaternion.identity, ~0, QueryTriggerInteraction.Ignore);
-            foreach (var h in hits)
+            foreach (var existing in _spawnedSections)
             {
-                if (h.transform.IsChildOf(section.transform) || h.transform == section.transform)
-                    continue;
-                if (h.transform.root == section.transform.root)
-                    continue;
-                if (h.gameObject.name == "Floor" && h.transform.root == h.transform)
-                    continue;
-                return true;
+                if (existing == null || existing == section) continue;
+                if (existing.transform == section.transform) continue;
+
+                Bounds existingBounds = GetSectionBounds(existing);
+                if (existingBounds.size.sqrMagnitude < 0.0001f) continue;
+
+                Bounds shrinkExisting = ShrinkBounds(existingBounds, margin);
+                if (shrinkNew.Intersects(shrinkExisting))
+                    return true;
             }
             return false;
+        }
+
+        private static Bounds ShrinkBounds(Bounds b, float margin)
+        {
+            var size = b.size - Vector3.one * (2f * margin);
+            if (size.x < 0.01f) size.x = 0.01f;
+            if (size.y < 0.01f) size.y = 0.01f;
+            if (size.z < 0.01f) size.z = 0.01f;
+            return new Bounds(b.center, size);
+        }
+
+        private static Bounds GetSectionBounds(MallSection section)
+        {
+            if (section == null) return new Bounds();
+            var renderers = section.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0)
+            {
+                var colliders = section.GetComponentsInChildren<Collider>();
+                if (colliders.Length == 0) return new Bounds(section.transform.position, Vector3.zero);
+                var b = colliders[0].bounds;
+                for (int i = 1; i < colliders.Length; i++)
+                    b.Encapsulate(colliders[i].bounds);
+                return b;
+            }
+            var bounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+                bounds.Encapsulate(renderers[i].bounds);
+            return bounds;
         }
 
         private void CollectSpawnPoints(MallSection section)
@@ -315,6 +383,14 @@ namespace NightShift.Generation
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
+            Gizmos.color = new Color(0f, 1f, 0.5f, 0.6f);
+            foreach (var s in _spawnedSections)
+            {
+                if (s == null) continue;
+                Bounds b = GetSectionBounds(s);
+                if (b.size.sqrMagnitude > 0.0001f)
+                    Gizmos.DrawWireCube(b.center, b.size);
+            }
             Gizmos.color = Color.yellow;
             foreach (var s in _spawnedSections)
             {

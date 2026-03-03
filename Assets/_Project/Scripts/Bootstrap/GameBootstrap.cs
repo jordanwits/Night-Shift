@@ -28,6 +28,8 @@ namespace NightShift.Core
             EnsureComponent<GameClock>();
             EnsureComponent<InstabilityManager>();
             EnsureComponent<AnomalyManager>();
+            EnsureComponent<DispatchManager>();
+            EnsureComponent<AlertFeedUI>();
             EnsureComponent<DebugOverlay>();
             EnsureComponent<ReportUIController>();
             EnsurePlayer();

@@ -3,6 +3,24 @@ using System;
 namespace NightShift.Core
 {
     /// <summary>
+    /// Dispatch alert data. isFalse = alert without real anomaly (false positive).
+    /// </summary>
+    public struct DispatchAlert
+    {
+        public string message;
+        public DispatchSeverity severity;
+        public float timestamp;
+        public bool isFalse;
+
+        public static DispatchAlert Create(string message, DispatchSeverity severity, float timestamp, bool isFalse)
+        {
+            return new DispatchAlert { message = message, severity = severity, timestamp = timestamp, isFalse = isFalse };
+        }
+    }
+
+    public enum DispatchSeverity { Normal, Severe }
+
+    /// <summary>
     /// Central event bus for game-wide communication.
     /// Systems subscribe to events instead of direct references.
     /// </summary>
@@ -35,6 +53,13 @@ namespace NightShift.Core
         public static event Action<AnomalyReportData> OnReportFiled;
         public static void RaiseReportFiled(AnomalyReportData report) => OnReportFiled?.Invoke(report);
 
+        // === Dispatch ===
+        public static event Action<DispatchAlert> OnDispatchAlert;
+        public static void RaiseDispatchAlert(DispatchAlert alert) => OnDispatchAlert?.Invoke(alert);
+
+        public static event Action OnFalseDispatchNeeded;
+        public static void RaiseFalseDispatchNeeded() => OnFalseDispatchNeeded?.Invoke();
+
         // === Time ===
         public static event Action<float> OnGameTimeChanged;
         public static void RaiseGameTimeChanged(float time) => OnGameTimeChanged?.Invoke(time);
@@ -59,6 +84,8 @@ namespace NightShift.Core
             OnAnomalyFailed = null;
             OnActiveAnomalyCountChanged = null;
             OnReportFiled = null;
+            OnDispatchAlert = null;
+            OnFalseDispatchNeeded = null;
             OnGameTimeChanged = null;
             OnSixAMReached = null;
             OnRunEnded = null;

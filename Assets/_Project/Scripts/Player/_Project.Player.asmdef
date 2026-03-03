@@ -1,9 +1,9 @@
 {
-    "name": "NightShift.Player",
+    "name": "_Project.Player",
     "rootNamespace": "NightShift.Player",
     "references": [
-        "NightShift.Core",
-        "NightShift.Systems",
+        "_Project.Core",
+        "_Project.Systems",
         "Unity.InputSystem",
         "Unity.Mathematics"
     ],

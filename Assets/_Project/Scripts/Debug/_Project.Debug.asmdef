@@ -1,10 +1,10 @@
 {
-    "name": "NightShift.Debug",
+    "name": "_Project.Debug",
     "rootNamespace": "NightShift.Debug",
     "references": [
-        "NightShift.Core",
-        "NightShift.Systems",
-        "NightShift.Generation",
+        "_Project.Core",
+        "_Project.Systems",
+        "_Project.Generation",
         "Unity.InputSystem"
     ],
     "includePlatforms": [],

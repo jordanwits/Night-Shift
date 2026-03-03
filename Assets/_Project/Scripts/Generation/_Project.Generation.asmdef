@@ -1,9 +1,9 @@
 {
-    "name": "NightShift.Generation",
+    "name": "_Project.Generation",
     "rootNamespace": "NightShift.Generation",
     "references": [
-        "NightShift.Core",
-        "NightShift.Systems",
+        "_Project.Core",
+        "_Project.Systems",
         "Unity.Mathematics",
         "Unity.Collections"
     ],

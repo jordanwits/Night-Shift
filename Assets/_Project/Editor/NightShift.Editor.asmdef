@@ -2,8 +2,8 @@
     "name": "NightShift.Editor",
     "rootNamespace": "NightShift.Editor",
     "references": [
-        "NightShift.Core",
-        "NightShift.Systems",
+        "_Project.Core",
+        "_Project.Systems",
         "Unity.Editor",
         "UnityEngine"
     ],

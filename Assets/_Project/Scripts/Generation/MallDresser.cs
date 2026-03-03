@@ -223,7 +223,8 @@ namespace NightShift.Generation
             {
                 if (h.transform.root == sectionRoot || h.transform.IsChildOf(sectionRoot))
                     continue;
-                if (h.gameObject.name == "Floor" || h.gameObject.name.StartsWith("FloorCore") || h.gameObject.name == "Walls")
+                string n = h.gameObject.name;
+                if (n == "Floor" || n.StartsWith("FloorCore") || n == "Walls" || n.Contains("Wall") || n.StartsWith("Trim") || n == "Ceiling")
                     continue;
                 return false;
             }

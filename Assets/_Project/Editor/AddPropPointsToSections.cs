@@ -79,33 +79,10 @@ namespace NightShift.Editor
 
             bool changed = EnsureMarkerComponents(root.transform);
 
-            if (!HasComponentInChildren<PropPoint>(root.transform))
-            {
-                switch (sectionName)
-                {
-                    case "StartHub":
-                        AddPropPoint(root, -1.5f, 0.2f, 1.5f);
-                        AddPropPoint(root, 1.5f, 0.2f, -1f);
-                        AddPropPoint(root, 0f, 0.2f, 2.5f);
-                        break;
-                    case "HallStraight":
-                        AddPropPoint(root, -1.2f, 0.2f, 0f);
-                        AddPropPoint(root, 1.2f, 0.2f, 2f);
-                        AddPropPoint(root, 0f, 0.2f, -2f);
-                        break;
-                    case "HallCorner":
-                        AddPropPoint(root, 2.2f, 0.2f, 2.2f);
-                        AddPropPoint(root, 1.5f, 0.2f, 1.5f);
-                        break;
-                    case "StoreRoom":
-                        AddPropPoint(root, -1.8f, 0.2f, 1f);
-                        AddPropPoint(root, 1.8f, 0.2f, -1f);
-                        AddPropPoint(root, -1f, 0.2f, -1.5f);
-                        AddPropPoint(root, 1.2f, 0.2f, 1.5f);
-                        break;
-                }
-                changed = true;
-            }
+            int existingPropPoints = CountComponentsInChildren<PropPoint>(root.transform);
+            int created = EnsurePropPoints(root, sectionName, existingPropPoints, out int targetCount);
+            if (created > 0) changed = true;
+            Debug.Log($"[AddPropPoints] {sectionName}: created={created} existing={existingPropPoints}");
 
             if (!HasComponentInChildren<LandmarkPoint>(root.transform))
             {
@@ -158,9 +135,53 @@ namespace NightShift.Editor
             PrefabUtility.UnloadPrefabContents(root);
         }
 
-        private static void AddPropPoint(GameObject root, float x, float y, float z)
+        /// <summary>Idempotent: adds PropPoints only if fewer than required. Returns created count.</summary>
+        private static int EnsurePropPoints(GameObject root, string sectionName, int existingCount, out int targetCount)
         {
-            var go = new GameObject("PropPoint");
+            targetCount = 0;
+            var positions = GetPropPointPositions(sectionName, out targetCount);
+            if (positions == null || positions.Length == 0) return 0;
+            if (existingCount >= targetCount) return 0;
+
+            int toCreate = targetCount - existingCount;
+            int created = 0;
+            for (int i = 0; i < toCreate; i++)
+            {
+                int posIndex = existingCount + i;
+                if (posIndex >= positions.Length) break;
+                var p = positions[posIndex];
+                string name = $"PropPoint_{existingCount + created + 1}";
+                AddPropPoint(root, name, p.x, p.y, p.z);
+                created++;
+            }
+            return created;
+        }
+
+        private static (float x, float y, float z)[] GetPropPointPositions(string sectionName, out int targetCount)
+        {
+            targetCount = 0;
+            switch (sectionName)
+            {
+                case "StartHub":
+                    targetCount = 3;
+                    return new[] { (-1.5f, 0f, 1.5f), (1.5f, 0f, -1f), (0f, 0f, 2.5f) };
+                case "HallStraight":
+                    targetCount = 3;
+                    return new[] { (-2f, 0f, 1.5f), (0f, 0f, 1.5f), (2f, 0f, 1.5f) };
+                case "HallCorner":
+                    targetCount = 2;
+                    return new[] { (2.2f, 0f, 2.2f), (1.5f, 0f, 1.5f) };
+                case "StoreRoom":
+                    targetCount = 5;
+                    return new[] { (-2f, 0f, 1f), (2f, 0f, 1f), (0f, 0f, 2f), (-1.5f, 0f, 0f), (1.5f, 0f, 0f) };
+                default:
+                    return null;
+            }
+        }
+
+        private static void AddPropPoint(GameObject root, string name, float x, float y, float z)
+        {
+            var go = new GameObject(name);
             go.AddComponent<PropPoint>();
             go.transform.SetParent(root.transform);
             go.transform.localPosition = new Vector3(x, y, z);

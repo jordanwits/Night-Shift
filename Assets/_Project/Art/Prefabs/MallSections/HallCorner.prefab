@@ -350,37 +350,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: _Project.Systems::NightShift.Systems.CctvCameraPoint
   _cameraName: CctvPoint
   _viewTransform: {fileID: 0}
---- !u!1 &5021201736679305774
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 3689807648528201837}
-  m_Layer: 0
-  m_Name: ConnectorPoint
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &3689807648528201837
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5021201736679305774}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 4.5, y: 0, z: 4.5}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 8750931800760533542}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5141968872826853686
 GameObject:
   m_ObjectHideFlags: 0
@@ -641,7 +610,7 @@ Transform:
   - {fileID: 1803487813432387709}
   - {fileID: 4905849372912061967}
   - {fileID: 577208005247205509}
-  - {fileID: 3689807648528201837}
+  - {fileID: 7975645429058164490}
   - {fileID: 2648913967071160450}
   - {fileID: 9060565893415297889}
   - {fileID: 4138053561517973463}
@@ -664,7 +633,7 @@ MonoBehaviour:
   _floorLips: []
   _connectorPoints:
   - {fileID: 577208005247205509}
-  - {fileID: 3689807648528201837}
+  - {fileID: 7975645429058164490}
   _anomalySpawnPoints:
   - {fileID: 2648913967071160450}
   _cctvPoints:
@@ -966,3 +935,34 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &8996649015791645828
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7975645429058164490}
+  m_Layer: 0
+  m_Name: ConnectorPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7975645429058164490
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8996649015791645828}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 4.5, y: 0, z: 4.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8750931800760533542}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

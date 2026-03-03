@@ -107,75 +107,68 @@ namespace NightShift.Generation
             }
         }
 
-        /// <summary>Auto-collect markers from children by name/component.</summary>
+        /// <summary>Auto-collect markers from children by component type.</summary>
         public void CollectMarkersIfNeeded()
         {
             CollectFloorIfNeeded();
-            bool needsCollect = (_connectorPoints == null || _connectorPoints.Length == 0) ||
-                (_anomalySpawnPoints == null || _anomalySpawnPoints.Length == 0 && HasChildNamed("AnomalySpawnPoint")) ||
-                (_cctvPoints == null || _cctvPoints.Length == 0 && HasChildWithCctvPoint()) ||
-                (_playerSpawn == null && HasChildNamed("PlayerSpawn")) ||
-                ((_propPoints == null || _propPoints.Length == 0) && HasChildNamed("PropPoint")) ||
-                ((_landmarkPoints == null || _landmarkPoints.Length == 0) && HasChildNamed("LandmarkPoint")) ||
-                ((_signPoints == null || _signPoints.Length == 0) && HasChildNamed("SignPoint")) ||
-                ((_arrowSignPoints == null || _arrowSignPoints.Length == 0) && HasChildNamed("ArrowSignPoint"));
+            bool needsConnectors = _connectorPoints == null || _connectorPoints.Length == 0;
+            bool needsAnomalies = _anomalySpawnPoints == null || _anomalySpawnPoints.Length == 0;
+            bool needsCctv = _cctvPoints == null || _cctvPoints.Length == 0;
+            bool needsPlayer = _playerSpawn == null;
+            bool needsMarkers = needsConnectors || needsAnomalies || needsCctv || needsPlayer;
 
-            if (!needsCollect)
-                return;
-
-            var connectors = new List<Transform>();
-            var anomalies = new List<Transform>();
-            var cctvs = new List<Transform>();
-            var props = new List<Transform>();
-            var landmarks = new List<Transform>();
-            var signs = new List<Transform>();
-            var arrows = new List<Transform>();
-            Transform player = null;
-
-            foreach (Transform child in GetComponentsInChildren<Transform>(true))
+            if (needsMarkers)
             {
-                if (child == transform) continue;
+                var connectors = new List<Transform>();
+                var anomalies = new List<Transform>();
+                var cctvs = new List<Transform>();
+                Transform player = null;
 
-                if (child.name == "ConnectorPoint")
-                    connectors.Add(child);
-                else if (child.name == "AnomalySpawnPoint")
-                    anomalies.Add(child);
-                else if (child.name == "CctvPoint" || child.GetComponent<CctvCameraPoint>() != null)
-                    cctvs.Add(child);
-                else if (child.name == "PlayerSpawn")
-                    player = child;
-                else if (child.name == "PropPoint")
-                    props.Add(child);
-                else if (child.name == "LandmarkPoint")
-                    landmarks.Add(child);
-                else if (child.name == "SignPoint")
-                    signs.Add(child);
-                else if (child.name == "ArrowSignPoint")
-                    arrows.Add(child);
+                foreach (Transform child in GetComponentsInChildren<Transform>(true))
+                {
+                    if (child == transform) continue;
+                    if (child.name == "ConnectorPoint")
+                        connectors.Add(child);
+                    else if (child.name == "AnomalySpawnPoint")
+                        anomalies.Add(child);
+                    else if (child.name == "CctvPoint" || child.GetComponent<CctvCameraPoint>() != null)
+                        cctvs.Add(child);
+                    else if (child.name == "PlayerSpawn")
+                        player = child;
+                }
+
+                if (connectors.Count > 0) _connectorPoints = connectors.ToArray();
+                if (anomalies.Count > 0) _anomalySpawnPoints = anomalies.ToArray();
+                if (cctvs.Count > 0) _cctvPoints = cctvs.ToArray();
+                if (player != null) _playerSpawn = player;
             }
 
-            if (connectors.Count > 0) _connectorPoints = connectors.ToArray();
-            if (anomalies.Count > 0) _anomalySpawnPoints = anomalies.ToArray();
-            if (cctvs.Count > 0) _cctvPoints = cctvs.ToArray();
-            if (player != null) _playerSpawn = player;
-            if (props.Count > 0) _propPoints = props.ToArray();
-            if (landmarks.Count > 0) _landmarkPoints = landmarks.ToArray();
-            if (signs.Count > 0) _signPoints = signs.ToArray();
-            if (arrows.Count > 0) _arrowSignPoints = arrows.ToArray();
-        }
+            var propComps = GetComponentsInChildren<PropPoint>(true);
+            var landmarkComps = GetComponentsInChildren<LandmarkPoint>(true);
+            var signComps = GetComponentsInChildren<SignPoint>(true);
+            var arrowComps = GetComponentsInChildren<ArrowSignPoint>(true);
 
-        private bool HasChildNamed(string name)
-        {
-            foreach (Transform t in GetComponentsInChildren<Transform>(true))
-            {
-                if (t != transform && t.name == name) return true;
-            }
-            return false;
-        }
+            var props = new Transform[propComps.Length];
+            for (int i = 0; i < propComps.Length; i++)
+                props[i] = propComps[i].transform;
+            _propPoints = props;
 
-        private bool HasChildWithCctvPoint()
-        {
-            return GetComponentInChildren<CctvCameraPoint>(true) != null;
+            var landmarks = new Transform[landmarkComps.Length];
+            for (int i = 0; i < landmarkComps.Length; i++)
+                landmarks[i] = landmarkComps[i].transform;
+            _landmarkPoints = landmarks;
+
+            var signs = new Transform[signComps.Length];
+            for (int i = 0; i < signComps.Length; i++)
+                signs[i] = signComps[i].transform;
+            _signPoints = signs;
+
+            var arrows = new Transform[arrowComps.Length];
+            for (int i = 0; i < arrowComps.Length; i++)
+                arrows[i] = arrowComps[i].transform;
+            _arrowSignPoints = arrows;
+
+            Debug.Log($"[MallSection] {gameObject.name}: propPts={_propPoints.Length} signPts={_signPoints.Length} arrowPts={_arrowSignPoints.Length} landmarkPts={_landmarkPoints.Length}");
         }
 
 #if UNITY_EDITOR

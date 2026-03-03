@@ -309,7 +309,7 @@ namespace NightShift.Editor
             }
 
             var ms = root.AddComponent<MallSection>();
-            SerializeMallSection(ms, isStart: false, connectorCount: 2, anomalyCount: 2, cctvCount: 1, hasPlayerSpawn: false);
+            SerializeMallSection(ms, isStart: false, connectorCount: 4, anomalyCount: 2, cctvCount: 1, hasPlayerSpawn: false);
 
             var c1 = CreateMarker("ConnectorPoint");
             c1.transform.SetParent(root.transform);
@@ -320,6 +320,16 @@ namespace NightShift.Editor
             c2.transform.SetParent(root.transform);
             c2.transform.localPosition = new Vector3(0f, 0f, halfL);
             c2.transform.localRotation = Quaternion.identity;
+
+            var c3 = CreateMarker("ConnectorPoint");
+            c3.transform.SetParent(root.transform);
+            c3.transform.localPosition = new Vector3(-halfW, 0f, 0f);
+            c3.transform.localRotation = Quaternion.Euler(0f, -90f, 0f);
+
+            var c4 = CreateMarker("ConnectorPoint");
+            c4.transform.SetParent(root.transform);
+            c4.transform.localPosition = new Vector3(halfW, 0f, 0f);
+            c4.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
 
             var a1 = CreateMarker("AnomalySpawnPoint");
             a1.transform.SetParent(root.transform);

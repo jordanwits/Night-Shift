@@ -33,9 +33,9 @@ namespace NightShift.Generation
         [SerializeField] private float _overlapCheckRadiusMin = 0.35f;
         [SerializeField] private float _overlapCheckRadiusMax = 0.6f;
         [SerializeField] private LayerMask _overlapLayers = -1;
-        [SerializeField] private int _minPropsHall = 2;
-        [SerializeField] private int _maxPropsHall = 4;
-        [SerializeField] private int _minPropsStore = 3;
+        [SerializeField] private int _minPropsHall = 1;
+        [SerializeField] private int _maxPropsHall = 3;
+        [SerializeField] private int _minPropsStore = 2;
         [SerializeField] private int _maxPropsStore = 5;
         [SerializeField] private bool _dressingEnabled = true;
 
@@ -45,10 +45,20 @@ namespace NightShift.Generation
         private int _lastSeed;
         private int _propsSpawned;
         private int _landmarksSpawned;
+        private int _signsSpawned;
+        private int _arrowSignsSpawned;
 
         public int PropsSpawned => _propsSpawned;
         public int LandmarksSpawned => _landmarksSpawned;
         public bool DressingEnabled => _dressingEnabled;
+
+        public int LastPropsSpawned { get; private set; }
+        public int LastSignsSpawned { get; private set; }
+        public int LastArrowSignsSpawned { get; private set; }
+        public int LastSectionsDressed { get; private set; }
+        public int LastPropPointsFound { get; private set; }
+        public int LastSignPointsFound { get; private set; }
+        public int LastArrowSignPointsFound { get; private set; }
 
         private void Awake()
         {
@@ -76,6 +86,14 @@ namespace NightShift.Generation
         {
             ClearDressing();
 
+            LastPropsSpawned = 0;
+            LastSignsSpawned = 0;
+            LastArrowSignsSpawned = 0;
+            LastSectionsDressed = 0;
+            LastPropPointsFound = 0;
+            LastSignPointsFound = 0;
+            LastArrowSignPointsFound = 0;
+
             if (!_dressingEnabled || sections == null || sections.Count == 0)
                 return;
 
@@ -84,6 +102,19 @@ namespace NightShift.Generation
             _rng = new System.Random(seed);
             _propsSpawned = 0;
             _landmarksSpawned = 0;
+
+            int propPts = 0, signPts = 0, arrowPts = 0;
+            for (int i = 0; i < sections.Count; i++)
+            {
+                var s = sections[i];
+                if (s == null) continue;
+                propPts += s.PropPoints.Count;
+                signPts += s.SignPoints.Count;
+                arrowPts += s.ArrowSignPoints.Count;
+            }
+            LastPropPointsFound = propPts;
+            LastSignPointsFound = signPts;
+            LastArrowSignPointsFound = arrowPts;
 
             _dressingRoot = new GameObject("Dressing").transform;
             _dressingRoot.SetParent(generationRoot);
@@ -105,7 +136,22 @@ namespace NightShift.Generation
                     AddStartHubDirectionSigns(section, usedDirectionTargets);
             }
 
-            Debug.Log($"[MallDresser] Dressed {sections.Count} sections. Props={_propsSpawned} Landmarks={_landmarksSpawned}");
+            var corridorEnds = MallGenerator.Instance != null ? MallGenerator.Instance.CorridorEndSections : null;
+            if (corridorEnds != null && corridorEnds.Count > 0)
+            {
+                foreach (var endSection in corridorEnds)
+                {
+                    if (endSection != null)
+                        AddCorridorEndDirectionSign(endSection, usedDirectionTargets);
+                }
+            }
+
+            LastPropsSpawned = _propsSpawned + _landmarksSpawned;
+            LastSignsSpawned = _signsSpawned;
+            LastArrowSignsSpawned = _arrowSignsSpawned;
+            LastSectionsDressed = sections.Count;
+
+            Debug.Log($"[MallDresser] sections={LastSectionsDressed} propPts={LastPropPointsFound} propsSpawned={LastPropsSpawned} signPts={LastSignPointsFound} signsSpawned={LastSignsSpawned} arrowPts={LastArrowSignPointsFound} arrowsSpawned={LastArrowSignsSpawned}");
         }
 
         private void DressSection(MallSection section, HashSet<string> usedStoreNames)
@@ -253,6 +299,7 @@ namespace NightShift.Generation
             sign.transform.rotation = Quaternion.LookRotation(pt.forward, Vector3.up);
             sign.transform.localScale = Vector3.one;
             sign.name = $"Sign_{name}";
+            _signsSpawned++;
         }
 
         private void AddStartHubDirectionSigns(MallSection section, List<string> usedTargets)
@@ -260,7 +307,7 @@ namespace NightShift.Generation
             var arrowPoints = section.ArrowSignPoints;
             if (arrowPoints.Count == 0) return;
 
-            int count = Mathf.Min(arrowPoints.Count, DirectionTargets.Length);
+            int count = Mathf.Clamp(_rng.Next(2, 5), 2, Mathf.Min(arrowPoints.Count, DirectionTargets.Length));
             var targets = new List<string>(DirectionTargets);
             ShuffleList(targets);
 
@@ -283,7 +330,35 @@ namespace NightShift.Generation
                 sign.transform.rotation = Quaternion.LookRotation(pt.forward, Vector3.up);
                 sign.transform.localScale = Vector3.one;
                 sign.name = $"Direction_{target}";
+                _arrowSignsSpawned++;
             }
+        }
+
+        private void AddCorridorEndDirectionSign(MallSection section, List<string> usedTargets)
+        {
+            var arrowPoints = section.ArrowSignPoints;
+            if (arrowPoints.Count == 0) return;
+
+            var pt = arrowPoints[_rng.Next(arrowPoints.Count)];
+            if (pt == null) return;
+
+            var targets = new List<string>(DirectionTargets);
+            ShuffleList(targets);
+            string target = targets.Count > 0 ? targets[0] : "EXIT";
+            string text = $"→ {target}";
+
+            Vector3 rayStart = pt.position + Vector3.up * 2f;
+            float signY = pt.position.y;
+            if (Physics.Raycast(rayStart, Vector3.down, out var floorHit, 10f, _overlapLayers))
+                signY = Mathf.Min(pt.position.y, floorHit.point.y + MaxSignHeightAboveFloor);
+
+            var sign = CreateSignObject(text, 1.5f, 0.2f, pt.forward);
+            sign.transform.SetParent(section.transform);
+            sign.transform.position = new Vector3(pt.position.x, signY, pt.position.z);
+            sign.transform.rotation = Quaternion.LookRotation(pt.forward, Vector3.up);
+            sign.transform.localScale = Vector3.one;
+            sign.name = $"Direction_{target}";
+            _arrowSignsSpawned++;
         }
 
         private GameObject CreateSignObject(string text, float width, float height, Vector3 facing)
@@ -374,6 +449,8 @@ namespace NightShift.Generation
             }
             _propsSpawned = 0;
             _landmarksSpawned = 0;
+            _signsSpawned = 0;
+            _arrowSignsSpawned = 0;
         }
 
         /// <summary>Toggle dressing on/off and regenerate dressing only.</summary>

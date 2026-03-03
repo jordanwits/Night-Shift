@@ -28,13 +28,45 @@ namespace NightShift.Editor
             Debug.Log("[NightShift] Added PropPoints and LandmarkPoints to mall section prefabs.");
         }
 
-        private static bool HasChildNamed(Transform root, string name)
+        private static bool HasComponentInChildren<T>(Transform root) where T : Component
         {
+            return root.GetComponentsInChildren<T>(true).Length > 0;
+        }
+
+        private static int CountComponentsInChildren<T>(Transform root) where T : Component
+        {
+            return root.GetComponentsInChildren<T>(true).Length;
+        }
+
+        private static bool EnsureMarkerComponents(Transform root)
+        {
+            bool changed = false;
             foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
             {
-                if (t != root && t.name == name) return true;
+                if (t == root) continue;
+                string n = t.name;
+                if ((n == "PropPoint" || n.StartsWith("PropPoint_")) && t.GetComponent<PropPoint>() == null)
+                {
+                    t.gameObject.AddComponent<PropPoint>();
+                    changed = true;
+                }
+                else if ((n == "LandmarkPoint" || n.StartsWith("LandmarkPoint_")) && t.GetComponent<LandmarkPoint>() == null)
+                {
+                    t.gameObject.AddComponent<LandmarkPoint>();
+                    changed = true;
+                }
+                else if ((n == "SignPoint" || n.StartsWith("SignPoint_")) && t.GetComponent<SignPoint>() == null)
+                {
+                    t.gameObject.AddComponent<SignPoint>();
+                    changed = true;
+                }
+                else if ((n == "ArrowSignPoint" || n.StartsWith("ArrowSignPoint_")) && t.GetComponent<ArrowSignPoint>() == null)
+                {
+                    t.gameObject.AddComponent<ArrowSignPoint>();
+                    changed = true;
+                }
             }
-            return false;
+            return changed;
         }
 
         private static void ModifyPrefab(string path, string sectionName)
@@ -45,9 +77,9 @@ namespace NightShift.Editor
             var ms = root.GetComponent<MallSection>();
             if (ms == null) ms = root.AddComponent<MallSection>();
 
-            bool changed = false;
+            bool changed = EnsureMarkerComponents(root.transform);
 
-            if (!HasChildNamed(root.transform, "PropPoint"))
+            if (!HasComponentInChildren<PropPoint>(root.transform))
             {
                 switch (sectionName)
                 {
@@ -75,7 +107,7 @@ namespace NightShift.Editor
                 changed = true;
             }
 
-            if (!HasChildNamed(root.transform, "LandmarkPoint"))
+            if (!HasComponentInChildren<LandmarkPoint>(root.transform))
             {
                 if (sectionName == "StartHub")
                 {
@@ -89,7 +121,7 @@ namespace NightShift.Editor
                 }
             }
 
-            if (!HasChildNamed(root.transform, "SignPoint"))
+            if (!HasComponentInChildren<SignPoint>(root.transform))
             {
                 if (sectionName == "StoreRoom")
                 {
@@ -98,14 +130,23 @@ namespace NightShift.Editor
                 }
             }
 
-            if (!HasChildNamed(root.transform, "ArrowSignPoint"))
+            int arrowCount = CountComponentsInChildren<ArrowSignPoint>(root.transform);
+            if (sectionName == "StartHub" && arrowCount < 4)
             {
-                if (sectionName == "StartHub")
+                for (int a = arrowCount; a < 4; a++)
                 {
-                    AddArrowSignPoint(root, -3.5f, 2f, 0f, 0f, 0f, 0f);
-                    AddArrowSignPoint(root, 3.5f, 2f, 0f, 0f, 180f, 0f);
-                    changed = true;
+                    if (a == 2) AddArrowSignPoint(root, -2f, 2f, 2f, 0f, 0f, 0f);
+                    else if (a == 3) AddArrowSignPoint(root, 2f, 2f, 2f, 0f, 180f, 0f);
                 }
+                changed = true;
+            }
+            else if ((sectionName == "HallStraight" || sectionName == "HallCorner") && arrowCount < 1)
+            {
+                if (sectionName == "HallStraight")
+                    AddArrowSignPoint(root, 0f, 2f, 5f, 0f, 0f, 0f);
+                else
+                    AddArrowSignPoint(root, 2.5f, 2f, 2.5f, 0f, -45f, 0f);
+                changed = true;
             }
 
             if (changed)
@@ -120,6 +161,7 @@ namespace NightShift.Editor
         private static void AddPropPoint(GameObject root, float x, float y, float z)
         {
             var go = new GameObject("PropPoint");
+            go.AddComponent<PropPoint>();
             go.transform.SetParent(root.transform);
             go.transform.localPosition = new Vector3(x, y, z);
             go.transform.localRotation = Quaternion.identity;
@@ -129,6 +171,7 @@ namespace NightShift.Editor
         private static void AddLandmarkPoint(GameObject root, float x, float y, float z)
         {
             var go = new GameObject("LandmarkPoint");
+            go.AddComponent<LandmarkPoint>();
             go.transform.SetParent(root.transform);
             go.transform.localPosition = new Vector3(x, y, z);
             go.transform.localRotation = Quaternion.identity;
@@ -138,6 +181,7 @@ namespace NightShift.Editor
         private static void AddSignPoint(GameObject root, float x, float y, float z, float rx, float ry, float rz)
         {
             var go = new GameObject("SignPoint");
+            go.AddComponent<SignPoint>();
             go.transform.SetParent(root.transform);
             go.transform.localPosition = new Vector3(x, y, z);
             go.transform.localRotation = Quaternion.Euler(rx, ry, rz);
@@ -147,6 +191,7 @@ namespace NightShift.Editor
         private static void AddArrowSignPoint(GameObject root, float x, float y, float z, float rx, float ry, float rz)
         {
             var go = new GameObject("ArrowSignPoint");
+            go.AddComponent<ArrowSignPoint>();
             go.transform.SetParent(root.transform);
             go.transform.localPosition = new Vector3(x, y, z);
             go.transform.localRotation = Quaternion.Euler(rx, ry, rz);

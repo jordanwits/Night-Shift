@@ -36,6 +36,11 @@ namespace NightShift.Generation
         public int CorridorCount { get; private set; }
         public int BranchCount { get; private set; }
 
+        /// <summary>Sections at corridor ends (for directional signs).</summary>
+        public IReadOnlyList<MallSection> CorridorEndSections => _corridorEndSections;
+
+        private readonly List<MallSection> _corridorEndSections = new List<MallSection>();
+
         private System.Random _rng;
 
         public bool UseFixedSeed => _useFixedSeed;
@@ -122,9 +127,11 @@ namespace NightShift.Generation
             ForceSectionRootY(startSection);
             CollectSpawnPoints(startSection);
             _spawnedSections.Add(startSection);
+            LogSectionMarkerCounts(startSection, "StartHub_0");
 
             CorridorCount = 0;
             BranchCount = 0;
+            _corridorEndSections.Clear();
 
             GenerateHubAndSpokeLayout(startSection);
 
@@ -196,7 +203,6 @@ namespace NightShift.Generation
                 else dirVec.Normalize();
 
                 int corridorLen = _rng.Next(2, 5);
-                int storeCount = _rng.Next(0, 2);
                 int failures = 0;
                 MallSection head = startSection;
                 Transform headConn = hubConn;
@@ -211,25 +217,37 @@ namespace NightShift.Generation
                     if (TryPlaceSectionGridAligned(prefab, head, headConn, out var newSection, out var outConn, out var outDir))
                     {
                         CollectSpawnPoints(newSection);
-                        _spawnedSections.Add(newSection);
                         newSection.name = $"Section_{sectionIdx}";
+                        _spawnedSections.Add(newSection);
+                        LogSectionMarkerCounts(newSection, newSection.name);
                         sectionIdx++;
                         corridorSections++;
                         if (i == 0) CorridorCount++;
 
+                        head = newSection;
+                        headConn = outConn;
+                        headDir = outDir;
                         if (useCorner)
-                        {
                             BranchCount++;
-                            head = newSection;
-                            headConn = outConn;
-                            headDir = outDir;
-                        }
-                        else
+
+                        if (!useCorner && storeRoom != null && (i & 1) == 1 && _rng.NextDouble() < 0.3)
                         {
-                            head = newSection;
-                            headConn = outConn;
-                            headDir = outDir;
+                            var branchConns = GetBranchConnectors(newSection, headDir);
+                            if (branchConns.Count > 0)
+                            {
+                                var branchConn = branchConns[_rng.Next(branchConns.Count)];
+                                if (TryPlaceSectionGridAligned(storeRoom, newSection, branchConn, out var storeSection, out _, out _))
+                                {
+                                    CollectSpawnPoints(storeSection);
+                                    storeSection.name = $"Section_{sectionIdx}";
+                                    _spawnedSections.Add(storeSection);
+                                    LogSectionMarkerCounts(storeSection, storeSection.name);
+                                    sectionIdx++;
+                                    BranchCount++;
+                                }
+                            }
                         }
+
                         failures = 0;
                     }
                     else
@@ -243,21 +261,8 @@ namespace NightShift.Generation
                     }
                 }
 
-                for (int s = 0; s < storeCount && head != null; s++)
-                {
-                    if (storeRoom == null) break;
-                    var openConns = GetOpenConnectors(head);
-                    if (openConns.Count == 0) break;
-                    Transform storeConn = openConns[_rng.Next(openConns.Count)];
-                    if (TryPlaceSectionGridAligned(storeRoom, head, storeConn, out var storeSection, out _, out _))
-                    {
-                        CollectSpawnPoints(storeSection);
-                        _spawnedSections.Add(storeSection);
-                        storeSection.name = $"Section_{sectionIdx}";
-                        sectionIdx++;
-                        BranchCount++;
-                    }
-                }
+                if (head != null && head != startSection && !_corridorEndSections.Contains(head))
+                    _corridorEndSections.Add(head);
             }
 
             Debug.Log($"[MallGenerator] Hub-and-spoke: {CorridorCount} corridors, {BranchCount} branches, {_spawnedSections.Count} sections");
@@ -287,8 +292,9 @@ namespace NightShift.Generation
                         out var newSection, out var newOpenConnectors, out _))
                 {
                     CollectSpawnPoints(newSection);
-                    _spawnedSections.Add(newSection);
                     newSection.name = $"Section_{placed}";
+                    _spawnedSections.Add(newSection);
+                    LogSectionMarkerCounts(newSection, newSection.name);
                     placed++;
                     foreach (var c in newOpenConnectors)
                         openConnectors.Add(c);
@@ -366,6 +372,51 @@ namespace NightShift.Generation
             }
 
             return false;
+        }
+
+        /// <summary>Connectors perpendicular to corridor direction (side connectors for branching). Only returns open connectors.</summary>
+        private List<Transform> GetBranchConnectors(MallSection section, Vector3 corridorDir)
+        {
+            corridorDir.y = 0f;
+            if (corridorDir.sqrMagnitude < 0.01f) corridorDir = Vector3.forward;
+            else corridorDir.Normalize();
+
+            var result = new List<Transform>();
+            const float snapTolerance = 0.5f;
+            const float perpendicularThresh = 0.3f;
+
+            foreach (var conn in section.ConnectorPoints)
+            {
+                if (conn == null) continue;
+
+                Vector3 connFwd = conn.forward;
+                connFwd.y = 0f;
+                if (connFwd.sqrMagnitude < 0.01f) continue;
+                connFwd.Normalize();
+
+                if (Mathf.Abs(Vector3.Dot(connFwd, corridorDir)) > perpendicularThresh)
+                    continue;
+
+                Vector3 pos = conn.position;
+                bool used = false;
+                foreach (var s in _spawnedSections)
+                {
+                    if (s == section) continue;
+                    foreach (var oc in s.ConnectorPoints)
+                    {
+                        if (oc == null) continue;
+                        if ((oc.position - pos).sqrMagnitude < snapTolerance * snapTolerance)
+                        {
+                            used = true;
+                            break;
+                        }
+                    }
+                    if (used) break;
+                }
+                if (!used)
+                    result.Add(conn);
+            }
+            return result;
         }
 
         /// <summary>Connectors of section that don't yet have a neighboring section snapped to them.</summary>
@@ -736,6 +787,16 @@ namespace NightShift.Generation
         {
             Debug.Log($"[MallGenerator] Generated {_spawnedSections.Count} sections. Seed={_seed}. " +
                 $"PlayerSpawn={(_playerSpawn != null ? "yes" : "no")} AnomalyPoints={_anomalySpawnPoints.Count} CctvPoints={_cctvPoints.Count}");
+        }
+
+        private static void LogSectionMarkerCounts(MallSection section, string sectionName)
+        {
+            if (section == null) return;
+            int conn = section.ConnectorPoints.Count;
+            int prop = section.PropPoints.Count;
+            int sign = section.SignPoints.Count;
+            int arrow = section.ArrowSignPoints.Count;
+            Debug.Log($"[MallGenerator] Section {sectionName}: connectors={conn} propPoints={prop} signPoints={sign} arrowSignPoints={arrow}");
         }
 
 #if UNITY_EDITOR

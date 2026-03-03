@@ -11,12 +11,8 @@ namespace NightShift.Systems
         public static GameObject Create(AnomalyDefinition definition)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            go.name = definition != null ? definition.id : "Anomaly";
-            go.transform.localScale = Vector3.one * 1.5f;
-
-            var col = go.GetComponent<Collider>();
-            if (col == null)
-                go.AddComponent<BoxCollider>();
+            go.name = definition != null ? (string.IsNullOrEmpty(definition.id) ? "Anomaly" : definition.id) : "Anomaly";
+            go.transform.localScale = Vector3.one * 2f;
 
             var instance = go.AddComponent<AnomalyInstance>();
             instance.Definition = definition;

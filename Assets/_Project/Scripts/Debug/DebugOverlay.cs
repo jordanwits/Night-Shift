@@ -20,6 +20,7 @@ namespace NightShift.Debug
         private GameStateManager _stateManager;
         private GameClock _clock;
         private InstabilityManager _instability;
+        private AnomalyManager _anomalyManager;
 
         private void Awake()
         {
@@ -27,6 +28,7 @@ namespace NightShift.Debug
             _stateManager = FindFirstObjectByType<GameStateManager>();
             _clock = FindFirstObjectByType<GameClock>();
             _instability = FindFirstObjectByType<InstabilityManager>();
+            _anomalyManager = FindFirstObjectByType<AnomalyManager>();
         }
 
         private void CreateCanvas()
@@ -76,6 +78,10 @@ namespace NightShift.Debug
             if (kb.f4Key.wasPressedThisFrame)
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
 
+            // F5: spawn anomaly at (0,0,0)
+            if (kb.f5Key.wasPressedThisFrame && _anomalyManager != null)
+                _anomalyManager.DebugSpawnAnomaly();
+
             if (_showOverlay && _text != null)
             {
                 _canvas.enabled = true;
@@ -92,8 +98,9 @@ namespace NightShift.Debug
             string state = _stateManager != null ? _stateManager.CurrentState.ToString() : "-";
             string time = _clock != null ? _clock.CurrentTimeText : "--:-- AM";
             float instability = _instability != null ? _instability.Instability : 0f;
+            int anomalies = _anomalyManager != null ? _anomalyManager.ActiveCount : 0;
 
-            return $"GameState: {state}\nTime: {time}\nInstability: {instability:F1}%";
+            return $"GameState: {state}\nTime: {time}\nInstability: {instability:F1}%\nAnomalies: {anomalies}";
         }
     }
 }

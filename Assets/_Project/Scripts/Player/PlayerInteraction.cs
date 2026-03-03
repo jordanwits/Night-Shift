@@ -1,70 +1,52 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using NightShift.Core;
 using NightShift.Systems;
 
 namespace NightShift.Player
 {
     /// <summary>
-    /// Detects anomalies in range and attempts fix on interaction.
-    /// Correct fix reduces instability, incorrect increases it.
+    /// Detects anomalies in range and resolves on E key.
+    /// Temporary: E = correct fix (Resolve(true)).
+    /// Uses Input System package.
     /// </summary>
     public class PlayerInteraction : MonoBehaviour
     {
         [Header("Detection")]
-        [SerializeField] private float _interactionRange = 3f;
-        [SerializeField] private LayerMask _anomalyLayer = -1;
-
-        [Header("Input")]
-        [SerializeField] private KeyCode _interactKey = KeyCode.E;
-
-        private AnomalyInstance _currentTarget;
+        [SerializeField] private float _interactionRange = 5f;
 
         private void Update()
         {
             if (GameStateManager.Instance?.CurrentState != GameState.InRun)
                 return;
 
-            _currentTarget = FindNearestAnomaly();
-
-            if (_currentTarget != null && Input.GetKeyDown(_interactKey))
+            var target = FindNearestAnomaly();
+            var kb = Keyboard.current;
+            if (target != null && kb != null && kb.eKey.wasPressedThisFrame)
             {
-                AttemptFix(_currentTarget);
+                target.Resolve(true);
             }
         }
 
         private AnomalyInstance FindNearestAnomaly()
         {
-            var hits = Physics.OverlapSphere(transform.position, _interactionRange, _anomalyLayer);
-            float nearestDist = float.MaxValue;
+            var instances = FindObjectsByType<AnomalyInstance>(FindObjectsSortMode.None);
             AnomalyInstance nearest = null;
+            float nearestDist = float.MaxValue;
 
-            foreach (var col in hits)
+            foreach (var instance in instances)
             {
-                var instance = col.GetComponentInParent<AnomalyInstance>();
-                if (instance == null || instance.IsFixed) continue;
+                if (instance == null || !instance.IsActive)
+                    continue;
 
                 float d = Vector3.Distance(transform.position, instance.transform.position);
-                if (d < nearestDist)
+                if (d < _interactionRange && d < nearestDist)
                 {
                     nearestDist = d;
                     nearest = instance;
                 }
             }
             return nearest;
-        }
-
-        private void AttemptFix(AnomalyInstance instance)
-        {
-            if (instance == null || instance.IsFixed)
-                return;
-
-            string interactionId = instance.Definition?.fixMethod.correctInteractionId ?? "";
-            bool correct = instance.AttemptFix(interactionId);
-
-            if (correct)
-                instance.MarkFixed();
-
-            AnomalyManager.Instance?.OnAnomalyFixed(instance, correct);
         }
 
         private void OnDrawGizmosSelected()

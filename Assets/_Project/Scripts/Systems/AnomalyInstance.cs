@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using NightShift.Core;
 
@@ -5,34 +6,38 @@ namespace NightShift.Systems
 {
     /// <summary>
     /// Runtime component attached to spawned anomaly instances.
-    /// Tracks which definition it is and whether it has been fixed.
+    /// Tracks definition, active state, and resolution.
     /// </summary>
     public class AnomalyInstance : MonoBehaviour
     {
         public AnomalyDefinition Definition { get; set; }
-        public string InstanceId { get; set; }
-        public bool IsFixed { get; private set; }
+        public bool IsActive { get; private set; } = true;
 
-        public void MarkFixed()
-        {
-            IsFixed = true;
-        }
+        /// <summary>Fired when anomaly is resolved. Args: (instance, correctFix).</summary>
+        public event Action<AnomalyInstance, bool> OnResolved;
 
         /// <summary>
-        /// Called when player attempts a fix. Returns true if fix was correct.
+        /// Resolve this anomaly. Correct fix reduces instability; incorrect adds penalty.
         /// </summary>
-        public bool AttemptFix(string interactionId)
+        public void Resolve(bool correctFix)
         {
-            if (IsFixed) return false;
+            if (!IsActive)
+                return;
 
-            bool correct = Definition.fixMethod.type == AnomalyDefinition.FixType.Interact
-                || string.IsNullOrEmpty(Definition.fixMethod.correctInteractionId)
-                || Definition.fixMethod.correctInteractionId == interactionId;
+            IsActive = false;
 
-            if (correct)
-                MarkFixed();
+            if (Definition != null && InstabilityManager.Instance != null)
+            {
+                if (correctFix)
+                    InstabilityManager.Instance.Add(-Definition.instabilityReward);
+                else
+                    InstabilityManager.Instance.Add(Definition.instabilityPenalty);
+            }
 
-            return correct;
+            OnResolved?.Invoke(this, correctFix);
+            AnomalyManager.Instance?.NotifyInstanceResolved(this);
+
+            Destroy(gameObject);
         }
     }
 }

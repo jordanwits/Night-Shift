@@ -5,7 +5,9 @@ using NightShift.Core;
 namespace NightShift.Editor
 {
     /// <summary>
-    /// Creates 5 default anomaly definitions. Menu: Night Shift > Create Default Anomalies.
+    /// Creates 3 minimal anomaly definitions for testing.
+    /// Assets go in Resources/Anomalies for runtime loading.
+    /// Menu: Night Shift > Create Default Anomalies.
     /// </summary>
     public static class CreateDefaultAnomalies
     {
@@ -17,49 +19,58 @@ namespace NightShift.Editor
             EnsureFolderExists("Assets/_Project", "Resources");
             EnsureFolderExists("Assets/_Project/Resources", "Anomalies");
 
-            CreateAnomaly("anomaly_flickering_light", "Flickering Light", "Lights flicker erratically.", 1, 5f, 3f);
-            CreateAnomaly("anomaly_spilled_soda", "Spilled Soda", "Soda machine overflow.", 1, 4f, 2f);
-            CreateAnomaly("anomaly_lost_child", "Lost Child Poster", "Missing child poster appears in wrong location.", 2, 8f, 5f);
-            CreateAnomaly("anomaly_radio_static", "Radio Static", "Security radio emits static.", 2, 7f, 4f);
-            CreateAnomaly("anomaly_shadow_door", "Shadow in Doorway", "Unexplained shadow in corridor.", 3, 12f, 6f);
+            CreateAnomaly("rotated_mannequin", "Rotated Mannequin", 5f, 3f, 1f, false,
+                "A mannequin facing the wrong direction.");
+            CreateAnomaly("broken_escalator", "Broken Escalator", 8f, 5f, 1.5f, true,
+                "An escalator that has stopped unexpectedly.");
+            CreateAnomaly("duplicate_store", "Duplicate Store", 6f, 4f, 1f, false,
+                "The same store appears twice in different locations.");
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[NightShift] Created 5 default anomaly definitions in " + Path);
+            Debug.Log("[NightShift] Created 3 anomaly definitions in " + Path);
         }
 
         private static void EnsureFolderExists(string parentPath, string folderName)
         {
             string fullPath = parentPath + "/" + folderName;
-            if (!AssetDatabase.IsValidFolder(fullPath))
-                AssetDatabase.CreateFolder(parentPath, folderName);
+            if (AssetDatabase.IsValidFolder(fullPath))
+                return;
+            if (!AssetDatabase.IsValidFolder(parentPath))
+            {
+                var idx = parentPath.LastIndexOf('/');
+                if (idx > 0)
+                    EnsureFolderExists(parentPath.Substring(0, idx), parentPath.Substring(idx + 1));
+            }
+            AssetDatabase.CreateFolder(parentPath, folderName);
         }
 
-        private static void CreateAnomaly(string id, string name, string desc, int severity, float penalty, float reward)
+        private static void CreateAnomaly(string id, string displayName, float penalty, float reward,
+            float spawnWeight, bool isSevere, string description)
         {
             string assetPath = $"{Path}/{id}.asset";
             var existing = AssetDatabase.LoadAssetAtPath<AnomalyDefinition>(assetPath);
             if (existing != null)
             {
-                Debug.Log($"[NightShift] {id} already exists, skipping.");
+                existing.id = id;
+                existing.displayName = displayName;
+                existing.instabilityPenalty = penalty;
+                existing.instabilityReward = reward;
+                existing.spawnWeight = spawnWeight;
+                existing.isSevere = isSevere;
+                existing.description = description;
+                EditorUtility.SetDirty(existing);
                 return;
             }
 
             var def = ScriptableObject.CreateInstance<AnomalyDefinition>();
             def.id = id;
-            def.displayName = name;
-            def.description = desc;
-            def.severity = severity;
-            def.baseInstabilityPenalty = penalty;
-            def.rewardValue = reward;
-            def.spawnRules = new AnomalyDefinition.SpawnRules
-            {
-                minInstabilityToSpawn = 0,
-                maxInstabilityToSpawn = 100,
-                maxConcurrent = 2,
-                minCooldownSeconds = 15f
-            };
-            def.fixMethod = new AnomalyDefinition.FixMethod { type = AnomalyDefinition.FixType.Interact };
+            def.displayName = displayName;
+            def.instabilityPenalty = penalty;
+            def.instabilityReward = reward;
+            def.spawnWeight = spawnWeight;
+            def.isSevere = isSevere;
+            def.description = description;
 
             AssetDatabase.CreateAsset(def, assetPath);
         }

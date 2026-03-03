@@ -1,0 +1,19 @@
+{
+    "name": "NightShift.Systems",
+    "rootNamespace": "NightShift.Systems",
+    "references": [
+        "NightShift.Core",
+        "Unity.InputSystem",
+        "Unity.Mathematics",
+        "Unity.Collections"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,19 @@
+{
+    "name": "NightShift.Debug",
+    "rootNamespace": "NightShift.Debug",
+    "references": [
+        "NightShift.Core",
+        "NightShift.Systems",
+        "NightShift.Generation",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

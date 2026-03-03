@@ -1,0 +1,19 @@
+{
+    "name": "NightShift.Player",
+    "rootNamespace": "NightShift.Player",
+    "references": [
+        "NightShift.Core",
+        "NightShift.Systems",
+        "Unity.InputSystem",
+        "Unity.Mathematics"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

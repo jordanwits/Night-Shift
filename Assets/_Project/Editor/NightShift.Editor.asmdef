@@ -1,0 +1,21 @@
+{
+    "name": "NightShift.Editor",
+    "rootNamespace": "NightShift.Editor",
+    "references": [
+        "NightShift.Core",
+        "NightShift.Systems",
+        "Unity.Editor",
+        "UnityEngine"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

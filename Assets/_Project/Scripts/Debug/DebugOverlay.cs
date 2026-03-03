@@ -254,7 +254,10 @@ namespace NightShift.Debug
             int cctvPts = MallGenerator.Instance != null ? MallGenerator.Instance.CctvPoints.Count : 0;
             int propsSpawned = MallDresser.Instance != null ? MallDresser.Instance.PropsSpawned : 0;
             int landmarksSpawned = MallDresser.Instance != null ? MallDresser.Instance.LandmarksSpawned : 0;
-            sb.AppendLine($"Mall: seed={mallSeed} fixed={useFixedSeed} sections={mallSections} anomalyPts={anomalyPts} cctvPts={cctvPts}");
+            int corridors = MallGenerator.Instance != null ? MallGenerator.Instance.CorridorCount : 0;
+            int branches = MallGenerator.Instance != null ? MallGenerator.Instance.BranchCount : 0;
+            sb.AppendLine($"Mall: seed={mallSeed} fixed={useFixedSeed} sections={mallSections} corridors={corridors} branches={branches}");
+            sb.AppendLine($"AnomalyPts={anomalyPts} CctvPts={cctvPts}");
             sb.AppendLine($"Dressing: props={propsSpawned} landmarks={landmarksSpawned} | Shift+F7: toggle | Shift+F8: floor overlap validate");
             sb.AppendLine($"Credits: {credits} | Shift+F2: +100 | Shift+F3: fixedSeed | Shift+F4: regen | Shift+F5: regen new | Shift+F9: reset prog");
 

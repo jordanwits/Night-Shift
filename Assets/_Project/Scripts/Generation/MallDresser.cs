@@ -105,6 +105,8 @@ namespace NightShift.Generation
                     AddStartHubDirectionSigns(section, usedDirectionTargets);
             }
 
+            ApplySeamCapMaterials();
+
             Debug.Log($"[MallDresser] Dressed {sections.Count} sections. Props={_propsSpawned} Landmarks={_landmarksSpawned}");
         }
 
@@ -160,6 +162,44 @@ namespace NightShift.Generation
                 r.sharedMaterial = floorDark;
             else
                 r.sharedMaterial = (sectionIndex % 2 == 0) ? floorLight : floorDark;
+        }
+
+        private void ApplySeamCapMaterials()
+        {
+            if (_generationRoot == null) return;
+            var seams = _generationRoot.Find("Seams");
+            if (seams == null) return;
+
+            for (int i = 0; i < seams.childCount; i++)
+            {
+                var t = seams.GetChild(i);
+                if (t == null || t.name != "SeamCap") continue;
+
+                var seamRenderer = t.GetComponent<Renderer>();
+                if (seamRenderer == null) continue;
+
+                var mat = GetFloorMaterialFromPosition(t.position);
+                if (mat != null)
+                {
+                    seamRenderer.sharedMaterial = mat;
+                    seamRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    seamRenderer.receiveShadows = true;
+                }
+            }
+        }
+
+        private Material GetFloorMaterialFromPosition(Vector3 worldPos)
+        {
+            var rayStart = worldPos + Vector3.up * 0.5f;
+            if (!Physics.Raycast(rayStart, Vector3.down, out var hit, 2f, _overlapLayers))
+                return null;
+
+            var section = hit.transform.GetComponentInParent<MallSection>();
+            if (section == null) return null;
+
+            var floor = section.FloorMain != null ? section.FloorMain : section.transform.Find("Floor");
+            var r = floor != null ? floor.GetComponent<Renderer>() : null;
+            return r != null ? r.sharedMaterial : null;
         }
 
         private bool TrySpawnProp(Transform point, Transform sectionRoot, bool isLandmark, bool isStoreRoom)

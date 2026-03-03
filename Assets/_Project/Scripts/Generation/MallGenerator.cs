@@ -26,8 +26,16 @@ namespace NightShift.Generation
         [SerializeField] private Transform _generationRoot;
         [SerializeField] private int _maxPlacementTries = 5;
         [SerializeField] private float _boundsInflation = 0.05f;
+        [SerializeField] private Material _floorMaterial;
+
+        private const float FloorThickness = 0.2f;
+        private const float SeamCapLength = 4.5f;
+        private const float SeamCapWidth = 0.3f;
+        private const float SeamCapHeight = 0.02f;
+        private const float SeamCapYOffset = 0.011f;
 
         private System.Random _rng;
+        private Transform _seamsRoot;
 
         public bool UseFixedSeed => _useFixedSeed;
         private readonly List<MallSection> _spawnedSections = new List<MallSection>();
@@ -330,6 +338,8 @@ namespace NightShift.Generation
 
             ForceSectionRootY(newSection);
             DisableFloorLipAtConnector(newSection, usedConnIdx);
+            var parentSection = parentRoot != null ? parentRoot.GetComponent<MallSection>() : null;
+            SpawnSeamCap(parentConn, parentSection);
             var newConns = newSection.ConnectorPoints;
             for (int i = 0; i < newConns.Count; i++)
             {
@@ -351,6 +361,61 @@ namespace NightShift.Generation
             {
                 p.y = baseY;
                 section.transform.position = p;
+            }
+        }
+
+        /// <summary>Spawn a thin SeamCap strip at the connector join to cover floor seam and prevent flicker.</summary>
+        private void SpawnSeamCap(Transform connector, MallSection sectionWithFloor)
+        {
+            if (connector == null || _generationRoot == null) return;
+
+            if (_seamsRoot == null)
+            {
+                var go = new GameObject("Seams");
+                go.transform.SetParent(_generationRoot);
+                go.transform.localPosition = Vector3.zero;
+                go.transform.localRotation = Quaternion.identity;
+                go.transform.localScale = Vector3.one;
+                _seamsRoot = go.transform;
+            }
+
+            float floorY = _generationRoot.position.y + FloorThickness * 0.5f;
+            Vector3 pos = connector.position;
+            pos.y = floorY + SeamCapYOffset;
+
+            Vector3 fwd = connector.forward;
+            fwd.y = 0f;
+            if (fwd.sqrMagnitude < 0.01f) fwd = Vector3.forward;
+            else fwd.Normalize();
+
+            var rot = Quaternion.LookRotation(fwd, Vector3.up);
+            var cap = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cap.name = "SeamCap";
+            cap.transform.SetParent(_seamsRoot);
+            cap.transform.position = pos;
+            cap.transform.rotation = rot;
+            cap.transform.localScale = new Vector3(SeamCapLength, SeamCapHeight, SeamCapWidth);
+            Object.Destroy(cap.GetComponent<Collider>());
+
+            Material floorMat = null;
+            if (sectionWithFloor != null)
+            {
+                var floorTransform = sectionWithFloor.FloorMain != null ? sectionWithFloor.FloorMain : sectionWithFloor.transform.Find("Floor");
+                var floorRenderer = floorTransform != null ? floorTransform.GetComponent<Renderer>() : null;
+                if (floorRenderer != null && floorRenderer.sharedMaterial != null)
+                    floorMat = floorRenderer.sharedMaterial;
+            }
+            if (floorMat == null && _floorMaterial != null)
+                floorMat = _floorMaterial;
+            if (floorMat == null)
+                floorMat = Resources.Load<Material>("MallMaterials/Floor_Light");
+
+            var seamRenderer = cap.GetComponent<Renderer>();
+            if (seamRenderer != null && floorMat != null)
+            {
+                seamRenderer.sharedMaterial = floorMat;
+                seamRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                seamRenderer.receiveShadows = true;
             }
         }
 
@@ -502,6 +567,12 @@ namespace NightShift.Generation
         {
             var dresser = FindFirstObjectByType<MallDresser>();
             dresser?.ClearDressing();
+
+            if (_seamsRoot != null)
+            {
+                Destroy(_seamsRoot.gameObject);
+                _seamsRoot = null;
+            }
 
             foreach (var s in _spawnedSections)
             {

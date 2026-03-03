@@ -71,6 +71,10 @@ namespace NightShift.Core
         public static event Action<RunEndReason> OnRunEnded;
         public static void RaiseRunEnded(RunEndReason reason) => OnRunEnded?.Invoke(reason);
 
+        // === Player Damage (avoids Systems->Player reference) ===
+        public static event Action<float> OnPlayerDamageRequested;
+        public static void RaisePlayerDamageRequested(float amount) => OnPlayerDamageRequested?.Invoke(amount);
+
         /// <summary>
         /// Clears all subscribers. Call when transitioning to Bootstrap to prevent stale references.
         /// </summary>
@@ -89,6 +93,7 @@ namespace NightShift.Core
             OnGameTimeChanged = null;
             OnSixAMReached = null;
             OnRunEnded = null;
+            OnPlayerDamageRequested = null;
         }
     }
 
@@ -108,6 +113,7 @@ namespace NightShift.Core
     public enum RunEndReason
     {
         Survived,       // Reached 6AM
-        InstabilityMax  // Hit 100%
+        InstabilityMax, // Hit 100%
+        PlayerDied      // Downed too long (singleplayer)
     }
 }

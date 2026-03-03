@@ -25,6 +25,7 @@ namespace NightShift.Debug
         private InstabilityManager _instability;
         private AnomalyManager _anomalyManager;
         private DispatchManager _dispatchManager;
+        private MannequinSpawner _mannequinSpawner;
 
         private string _lastDistortedAlert;
         private float _distortedAlertTime;
@@ -36,6 +37,7 @@ namespace NightShift.Debug
             _clock = FindFirstObjectByType<GameClock>();
             _instability = FindFirstObjectByType<InstabilityManager>();
             _anomalyManager = FindFirstObjectByType<AnomalyManager>();
+            _mannequinSpawner = FindFirstObjectByType<MannequinSpawner>();
             _dispatchManager = FindFirstObjectByType<DispatchManager>();
         }
 
@@ -147,6 +149,21 @@ namespace NightShift.Debug
             if (kb.f9Key.wasPressedThisFrame && CctvManager.Instance != null)
                 CctvManager.Instance.DebugMarkSuspiciousFalse();
 
+            // F10: damage player 25
+            if (kb.f10Key.wasPressedThisFrame && Player.PlayerVitals.Instance != null)
+                Player.PlayerVitals.Instance.DebugDamage(25f);
+
+            // F11: revive player
+            if (kb.f11Key.wasPressedThisFrame && Player.PlayerVitals.Instance != null)
+                Player.PlayerVitals.Instance.DebugRevive();
+
+            // F12: toggle mannequin spawn
+            if (kb.f12Key.wasPressedThisFrame)
+            {
+                var spawner = FindFirstObjectByType<MannequinSpawner>();
+                spawner?.DebugToggleMannequin();
+            }
+
             if (_showOverlay && _text != null)
             {
                 _canvas.enabled = true;
@@ -178,6 +195,13 @@ namespace NightShift.Debug
             sb.AppendLine($"GameState: {state}");
             sb.AppendLine($"Time: {time}");
             sb.AppendLine($"Instability: {instability:F1}%");
+
+            float health = Player.PlayerVitals.Instance != null ? Player.PlayerVitals.Instance.Health : -1f;
+            bool downed = Player.PlayerVitals.Instance != null && Player.PlayerVitals.Instance.IsDowned;
+            bool mannequinActive = _mannequinSpawner != null && _mannequinSpawner.IsMannequinActive;
+            sb.AppendLine($"Player Health: {health:F0}");
+            sb.AppendLine($"Player Downed: {(downed ? "yes" : "no")}");
+            sb.AppendLine($"Mannequin Active: {(mannequinActive ? "yes" : "no")}");
             sb.AppendLine($"Anomalies: {anomalies}/{maxAnomalies}");
             sb.AppendLine($"Reports: {reports} (✓{correct} ✗{incorrect})");
             sb.AppendLine($"False alert chance: {falseChance * 100:F0}%");

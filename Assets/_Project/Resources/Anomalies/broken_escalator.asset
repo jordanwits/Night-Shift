@@ -18,4 +18,5 @@ MonoBehaviour:
   instabilityReward: 5
   spawnWeight: 1.5
   isSevere: 1
+  activateInstabilityThreshold: 70
   description: An escalator that has stopped unexpectedly.

@@ -15,6 +15,8 @@ namespace NightShift.Core
         public float instabilityReward;
         public float spawnWeight;
         public bool isSevere;
+        [Tooltip("Instability threshold to activate (for severe anomalies). Default 70.")]
+        public float activateInstabilityThreshold = 70f;
         [TextArea(2, 4)]
         public string description;
     }

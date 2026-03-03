@@ -28,8 +28,10 @@ namespace NightShift.Core
             EnsureComponent<GameClock>();
             EnsureComponent<InstabilityManager>();
             EnsureComponent<AnomalyManager>();
+            EnsureComponent<MannequinSpawner>();
             EnsureComponent<DispatchManager>();
             EnsureComponent<AlertFeedUI>();
+            SevereAnomalyWarningUI.Ensure();
             EnsureCctvSystem();
             EnsureComponent<SecurityTabletUI>();
             EnsureComponent<DebugOverlay>();
@@ -102,8 +104,11 @@ namespace NightShift.Core
                 cam.transform.localRotation = Quaternion.identity;
             }
 
+            player.AddComponent<PlayerVitals>();
             player.AddComponent<PlayerController>();
             player.AddComponent<PlayerInteraction>();
+
+            DownedOverlayUI.Ensure(null);
         }
     }
 }

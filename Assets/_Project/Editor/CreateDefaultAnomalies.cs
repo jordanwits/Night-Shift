@@ -19,12 +19,13 @@ namespace NightShift.Editor
             EnsureFolderExists("Assets/_Project", "Resources");
             EnsureFolderExists("Assets/_Project/Resources", "Anomalies");
 
-            CreateAnomaly("rotated_mannequin", "Rotated Mannequin", 5f, 3f, 1f, false,
+            CreateAnomaly("rotated_mannequin", "Rotated Mannequin", 5f, 3f, 1f, false, 70f,
                 "A mannequin facing the wrong direction.");
-            CreateAnomaly("broken_escalator", "Broken Escalator", 8f, 5f, 1.5f, true,
+            CreateAnomaly("broken_escalator", "Broken Escalator", 8f, 5f, 1.5f, true, 70f,
                 "An escalator that has stopped unexpectedly.");
-            CreateAnomaly("duplicate_store", "Duplicate Store", 6f, 4f, 1f, false,
+            CreateAnomaly("duplicate_store", "Duplicate Store", 6f, 4f, 1f, false, 70f,
                 "The same store appears twice in different locations.");
+            CreateSevereMannequin();
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -46,7 +47,7 @@ namespace NightShift.Editor
         }
 
         private static void CreateAnomaly(string id, string displayName, float penalty, float reward,
-            float spawnWeight, bool isSevere, string description)
+            float spawnWeight, bool isSevere, float activateThreshold, string description)
         {
             string assetPath = $"{Path}/{id}.asset";
             var existing = AssetDatabase.LoadAssetAtPath<AnomalyDefinition>(assetPath);
@@ -58,6 +59,7 @@ namespace NightShift.Editor
                 existing.instabilityReward = reward;
                 existing.spawnWeight = spawnWeight;
                 existing.isSevere = isSevere;
+                existing.activateInstabilityThreshold = activateThreshold;
                 existing.description = description;
                 EditorUtility.SetDirty(existing);
                 return;
@@ -70,9 +72,42 @@ namespace NightShift.Editor
             def.instabilityReward = reward;
             def.spawnWeight = spawnWeight;
             def.isSevere = isSevere;
+            def.activateInstabilityThreshold = activateThreshold;
             def.description = description;
 
             AssetDatabase.CreateAsset(def, assetPath);
+        }
+
+        private static void CreateSevereMannequin()
+        {
+            const string id = "severe_mannequin";
+            string assetPath = $"{Path}/{id}.asset";
+            var existing = AssetDatabase.LoadAssetAtPath<AnomalyDefinition>(assetPath);
+            if (existing != null)
+            {
+                existing.id = id;
+                existing.displayName = "Mannequin Stalker";
+                existing.instabilityPenalty = 12f;
+                existing.instabilityReward = 6f;
+                existing.spawnWeight = 0f;
+                existing.isSevere = true;
+                existing.activateInstabilityThreshold = 70f;
+                existing.description = "A hostile entity that stalks and attacks when instability is high.";
+                EditorUtility.SetDirty(existing);
+            }
+            else
+            {
+                var def = ScriptableObject.CreateInstance<AnomalyDefinition>();
+                def.id = id;
+                def.displayName = "Mannequin Stalker";
+                def.instabilityPenalty = 12f;
+                def.instabilityReward = 6f;
+                def.spawnWeight = 0f;
+                def.isSevere = true;
+                def.activateInstabilityThreshold = 70f;
+                def.description = "A hostile entity that stalks and attacks when instability is high.";
+                AssetDatabase.CreateAsset(def, assetPath);
+            }
         }
     }
 }

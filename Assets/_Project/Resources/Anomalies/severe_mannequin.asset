@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3959a11b526cb5e4e9483ac30d13e555, type: 3}
-  m_Name: rotated_mannequin
+  m_Name: severe_mannequin
   m_EditorClassIdentifier: 
-  id: rotated_mannequin
-  displayName: Rotated Mannequin
-  instabilityPenalty: 5
-  instabilityReward: 3
-  spawnWeight: 1
-  isSevere: 0
+  id: severe_mannequin
+  displayName: Mannequin Stalker
+  instabilityPenalty: 12
+  instabilityReward: 6
+  spawnWeight: 0
+  isSevere: 1
   activateInstabilityThreshold: 70
-  description: A mannequin facing the wrong direction.
+  description: A hostile entity that stalks and attacks when instability is high.

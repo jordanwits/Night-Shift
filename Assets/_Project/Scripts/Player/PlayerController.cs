@@ -6,18 +6,20 @@ namespace NightShift.Player
 {
     /// <summary>
     /// Simple first-person movement. Yaw on body, pitch on camera. Uses Input System package.
-    /// Blocks look/move when report UI is open.
+    /// Blocks look/move when report UI is open. Movement disabled/slowed when downed.
     /// </summary>
     public class PlayerController : MonoBehaviour
     {
         [Header("Movement")]
         [SerializeField] private float _moveSpeed = 5f;
         [SerializeField] private float _lookSpeed = 180f;
+        [SerializeField] private float _downedMoveMultiplier = 0.05f;
 
         private CharacterController _controller;
         private Transform _cameraTransform;
         private float _rotationY;
         private float _rotationX;
+        private PlayerVitals _vitals;
 
         private void Awake()
         {
@@ -27,6 +29,7 @@ namespace NightShift.Player
 
             var cam = GetComponentInChildren<Camera>();
             _cameraTransform = cam != null ? cam.transform : null;
+            _vitals = GetComponent<PlayerVitals>();
         }
 
         private void Update()
@@ -35,6 +38,9 @@ namespace NightShift.Player
                 return;
             if (SecurityTabletUI.Instance != null && SecurityTabletUI.Instance.IsTabletOpen)
                 return;
+
+            bool downed = _vitals != null && _vitals.IsDowned;
+            float moveMult = downed ? _downedMoveMultiplier : 1f;
 
             float h = 0f;
             float v = 0f;
@@ -49,7 +55,7 @@ namespace NightShift.Player
             }
 
             var mouse = Mouse.current;
-            if (mouse != null)
+            if (mouse != null && !downed)
             {
                 var delta = mouse.delta.ReadValue();
                 _rotationY += delta.x * 0.2f;
@@ -61,7 +67,7 @@ namespace NightShift.Player
             if (_cameraTransform != null)
                 _cameraTransform.localRotation = Quaternion.Euler(_rotationX, 0, 0);
 
-            Vector3 move = (transform.forward * v + transform.right * h).normalized * _moveSpeed * Time.deltaTime;
+            Vector3 move = (transform.forward * v + transform.right * h).normalized * _moveSpeed * moveMult * Time.deltaTime;
             move.y = -9.81f * Time.deltaTime;
             _controller.Move(move);
         }

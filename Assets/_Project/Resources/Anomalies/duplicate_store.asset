@@ -18,4 +18,5 @@ MonoBehaviour:
   instabilityReward: 4
   spawnWeight: 1
   isSevere: 0
+  activateInstabilityThreshold: 70
   description: The same store appears twice in different locations.

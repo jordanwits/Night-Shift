@@ -40,11 +40,12 @@ namespace NightShift.UI
 
         private void ShowEndScreen()
         {
-            bool survived = RunEndHandler.LastRunEndReason == RunEndReason.Survived;
+            var reason = RunEndHandler.LastRunEndReason;
+            bool survived = reason == RunEndReason.Survived;
             if (_titleText != null)
                 _titleText.text = survived ? "SURVIVED" : "GAME OVER";
 
-            string summary = BuildSummary(survived);
+            string summary = BuildSummary(survived, reason);
             if (_summaryText != null)
                 _summaryText.text = summary;
 
@@ -52,11 +53,18 @@ namespace NightShift.UI
                 _panel.SetActive(true);
         }
 
-        private string BuildSummary(bool survived)
+        private string BuildSummary(bool survived, RunEndReason reason)
         {
             float instability = InstabilityManager.Instance != null ? InstabilityManager.Instance.Instability : 0;
             string time = GameTimeManager.Instance != null ? GameTimeManager.Instance.GetFormattedTime() : "6:00";
-            return $"Time: {time}\nInstability: {instability:F0}%\nOutcome: {(survived ? "Reached 6AM" : "Instability maxed")}";
+            string outcome = reason switch
+            {
+                RunEndReason.Survived => "Reached 6AM",
+                RunEndReason.InstabilityMax => "Instability maxed",
+                RunEndReason.PlayerDied => "Downed too long",
+                _ => "Unknown"
+            };
+            return $"Time: {time}\nInstability: {instability:F0}%\nOutcome: {outcome}";
         }
     }
 }

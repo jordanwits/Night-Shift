@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using NightShift.Core;
 using NightShift.Systems;
 
@@ -82,6 +83,7 @@ namespace NightShift.Generation
         public void Generate(int? seed = null)
         {
             ClearExisting();
+            RemoveOverlappingFloors();
 
             if (seed.HasValue)
                 _seed = seed.Value;
@@ -108,7 +110,7 @@ namespace NightShift.Generation
             if (startSection == null)
                 startSection = start.AddComponent<MallSection>();
 
-            ApplyFloorZOffset(startSection, 0);
+            ForceSectionRootY(startSection);
             CollectSpawnPoints(startSection);
             _spawnedSections.Add(startSection);
 
@@ -264,7 +266,8 @@ namespace NightShift.Generation
                 foreach (var cp in newSection.ConnectorPoints)
                     newOpenConnectors.Add((newSection, cp));
                 if (WouldOverlap(newSection, out rejectReason)) { Destroy(inst); newSection = null; rejectReason = "overlap"; return false; }
-                ApplyFloorZOffset(newSection, _spawnedSections.Count);
+                ForceSectionRootY(newSection);
+                SpawnSeamStrip(parentConn);
                 rejectReason = null;
                 return true;
             }
@@ -276,7 +279,8 @@ namespace NightShift.Generation
                 var inst = Instantiate(prefab, pos, Quaternion.identity, _generationRoot);
                 newSection = inst.GetComponent<MallSection>() ?? inst.AddComponent<MallSection>();
                 if (WouldOverlap(newSection, out rejectReason)) { Destroy(inst); newSection = null; rejectReason = "overlap"; return false; }
-                ApplyFloorZOffset(newSection, _spawnedSections.Count);
+                ForceSectionRootY(newSection);
+                SpawnSeamStrip(parentConn);
                 rejectReason = null;
                 return true;
             }
@@ -326,7 +330,8 @@ namespace NightShift.Generation
                 return false;
             }
 
-            ApplyFloorZOffset(newSection, _spawnedSections.Count);
+            ForceSectionRootY(newSection);
+            SpawnSeamStrip(parentConn);
             var newConns = newSection.ConnectorPoints;
             for (int i = 0; i < newConns.Count; i++)
             {
@@ -338,26 +343,50 @@ namespace NightShift.Generation
             return true;
         }
 
-        private const float FloorZOffsetAmount = 0.002f;
-
-        private static void ApplyFloorZOffset(MallSection section, int sectionIndex)
+        /// <summary>Force section root Y to base height to avoid vertical offsets and floor z-fighting.</summary>
+        private void ForceSectionRootY(MallSection section)
         {
             if (section == null) return;
-            float off = (sectionIndex % 2 == 0) ? 0f : FloorZOffsetAmount;
-            var floor = section.transform.Find("Floor");
-            if (floor != null)
+            float baseY = _generationRoot != null ? _generationRoot.position.y : 0f;
+            var p = section.transform.position;
+            if (Mathf.Abs(p.y - baseY) > 0.0001f)
             {
-                var fp = floor.localPosition;
-                fp.y += off;
-                floor.localPosition = fp;
+                p.y = baseY;
+                section.transform.position = p;
             }
-            var ceiling = section.transform.Find("Ceiling");
-            if (ceiling != null)
-            {
-                var cp = ceiling.localPosition;
-                cp.y -= off;
-                ceiling.localPosition = cp;
-            }
+        }
+
+        private const float SeamStripHeight = 0.01f;
+        private const float SeamStripLength = 5f;
+        private const float SeamStripThickness = 0.12f;
+        private const float FloorTopOffset = 0.1f;
+
+        /// <summary>Thin strip at connector line to hide seam and prevent edge z-fighting.</summary>
+        private void SpawnSeamStrip(Transform connector)
+        {
+            if (connector == null || _generationRoot == null) return;
+
+            float baseY = _generationRoot.position.y;
+            Vector3 pos = connector.position;
+            pos.y = baseY + FloorTopOffset + SeamStripHeight * 0.5f;
+
+            Vector3 fwd = connector.forward;
+            fwd.y = 0f;
+            if (fwd.sqrMagnitude < 0.01f) fwd = Vector3.forward;
+            Vector3 seamDir = Vector3.Cross(Vector3.up, fwd).normalized;
+
+            var strip = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            strip.name = "SeamStrip";
+            strip.transform.SetParent(_generationRoot);
+            strip.transform.position = pos;
+            strip.transform.rotation = Quaternion.LookRotation(seamDir, Vector3.up);
+            strip.transform.localScale = new Vector3(SeamStripThickness, SeamStripHeight, SeamStripLength);
+
+            Object.Destroy(strip.GetComponent<Collider>());
+            var mat = Resources.Load<Material>("MallMaterials/Floor_Light");
+            var r = strip.GetComponent<Renderer>();
+            if (mat != null && r != null)
+                r.sharedMaterial = mat;
         }
 
         /// <summary>Snap Y to base height. No floating offsets to ensure floor consistency.</summary>
@@ -470,10 +499,44 @@ namespace NightShift.Generation
             }
         }
 
+        /// <summary>Destroy any floor not under our generation root (bootstrap Plane, scene floor) to prevent overlapping layers.</summary>
+        private void RemoveOverlappingFloors()
+        {
+            var scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid()) return;
+
+            var toDestroy = new HashSet<GameObject>();
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                if (root.name == "Floor" && (_generationRoot == null || !root.transform.IsChildOf(_generationRoot)))
+                    toDestroy.Add(root);
+                foreach (var t in root.GetComponentsInChildren<Transform>(true))
+                {
+                    if (t != root && t.name == "Floor" && (_generationRoot == null || !t.IsChildOf(_generationRoot)))
+                        toDestroy.Add(t.gameObject);
+                }
+            }
+            foreach (var go in toDestroy)
+            {
+                if (go != null)
+                    Destroy(go);
+            }
+        }
+
         private void ClearExisting()
         {
             var dresser = FindFirstObjectByType<MallDresser>();
             dresser?.ClearDressing();
+
+            if (_generationRoot != null)
+            {
+                for (int i = _generationRoot.childCount - 1; i >= 0; i--)
+                {
+                    var c = _generationRoot.GetChild(i);
+                    if (c.name == "SeamStrip")
+                        Destroy(c.gameObject);
+                }
+            }
 
             foreach (var s in _spawnedSections)
             {

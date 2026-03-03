@@ -25,9 +25,9 @@ namespace NightShift.Core
 
         private void Awake()
         {
-            EnsureFloor();
             EnsureComponent<MallDresser>();
             EnsureComponent<MallGenerator>();
+            EnsureFloor();
             EnsureComponent<GameClock>();
             EnsureComponent<InstabilityManager>();
             EnsureComponent<AnomalyManager>();

@@ -16,6 +16,8 @@ namespace NightShift.Editor
 
         // Normalized scale constants
         private const float CeilingHeight = 3.5f;
+        /// <summary>Shrink floor X/Z by ~2% to prevent coplanar z-fighting at section seams.</summary>
+        private const float FloorInsetScale = 0.98f;
         private const float HallWidth = 4.5f;
         private const float HallLength = 10f;
         private const float StoreSize = 7f;
@@ -184,7 +186,7 @@ namespace NightShift.Editor
             floor.name = "Floor";
             floor.transform.SetParent(root.transform);
             floor.transform.localPosition = Vector3.zero;
-            floor.transform.localScale = new Vector3(size, 0.2f, size);
+            floor.transform.localScale = new Vector3(size * FloorInsetScale, 0.2f, size * FloorInsetScale);
             ApplyMaterial(floor, _floorLight);
             EnsureStructuralCollider(floor);
 
@@ -241,7 +243,7 @@ namespace NightShift.Editor
             floor.name = "Floor";
             floor.transform.SetParent(root.transform);
             floor.transform.localPosition = Vector3.zero;
-            floor.transform.localScale = new Vector3(HallWidth, 0.2f, HallLength);
+            floor.transform.localScale = new Vector3(HallWidth * FloorInsetScale, 0.2f, HallLength * FloorInsetScale);
             ApplyMaterial(floor, _floorLight);
             EnsureStructuralCollider(floor);
 
@@ -318,7 +320,7 @@ namespace NightShift.Editor
             floor.name = "Floor";
             floor.transform.SetParent(root.transform);
             floor.transform.localPosition = new Vector3(half, 0f, half);
-            floor.transform.localScale = new Vector3(cornerSize, 0.2f, cornerSize);
+            floor.transform.localScale = new Vector3(cornerSize * FloorInsetScale, 0.2f, cornerSize * FloorInsetScale);
             ApplyMaterial(floor, _floorLight);
             EnsureStructuralCollider(floor);
 
@@ -389,7 +391,7 @@ namespace NightShift.Editor
             floor.name = "Floor";
             floor.transform.SetParent(root.transform);
             floor.transform.localPosition = Vector3.zero;
-            floor.transform.localScale = new Vector3(StoreSize, 0.2f, StoreSize);
+            floor.transform.localScale = new Vector3(StoreSize * FloorInsetScale, 0.2f, StoreSize * FloorInsetScale);
             ApplyMaterial(floor, _floorDark);
             EnsureStructuralCollider(floor);
 
